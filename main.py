@@ -46,8 +46,10 @@ class Unit:
         self.target = None
         self.position = position
         self.traits = set()
+        self.star = 1
         self._id = None
         self.board = None
+        self.start_time = time.perf_counter()
 
     @property
     def ad(self):
@@ -113,7 +115,7 @@ class Unit:
             return 0
         return 2
 
-    def attack(self):
+    def autoattack(self):
         if not self.target:
             self.acquire_target()
             return
@@ -124,8 +126,8 @@ class Unit:
 
 
     async def cast_spell(self):
-        raise NotImplementedError
-
+        self.log('casting...')
+        return
 
     def receive_damage(self, dmg, source, dmg_type, is_autoattack=False):
         if source == 'physical':
@@ -142,14 +144,23 @@ class Unit:
         return (True, dmg)
 
     def log(self, msg):
-        print('[%s %s] %s' % (self.name, self._id, msg))
+        print('(%f)[%s %s] %s' % (time.perf_counter() - self.start_time, 
+                                  self.name, self._id, msg))
+
+
 
     def death(self):
         self.log('died')
-        raise NotImplementedError
+        self.board.remove_unit(self, death=True)
+
+
 
     async def loop(self):
-        while self.hp > 0:
+        while True:
+            if self.hp < 0:
+                self.death()
+                return
+
             if self.mana == self.max_mana:
                 self._mana = 0
                 await self.cast_spell()
@@ -161,16 +172,27 @@ class Unit:
             
             if self.target:
                 # should have target now
-                self.attack()
+                self.autoattack()
 
             await asyncio.sleep(1 / self.atspd)
             self.log(repr(self))
 
 
+class Player:
+    # hp, gold, win streak, exp, champion roster
+    # should each player get a single board? with half playable
+    # space and reflect over for battle
+    # each spot points to a champion
+    pass
+
+
 class Board:
     def __init__(self):
-        self.units = set()  # maybe dict from position -> unit?
+        self.units = set()  # maybe dict from position/id -> unit?
         self._id = 0
+        # CR-soon: combaine team stats to a namedtuple?
+        self.teams = [set(), set()]
+        self.team_hp = [100, 100]
         pass
 
     def distance(self, pos1, pos2):
@@ -178,21 +200,30 @@ class Board:
         x2, y2 = pos2
         return (x1-x2)**2 + (y1-y2)**2
 
-    def add_unit(self, unit, team=0):
+    def add_unit(self, unit, team_id=0):
         self.units.add(unit)
         unit._id = self._id
-        unit.team = team
+        unit.team_id = team_id
         unit.board = self
+        self.teams[team_id].add(unit)
         self._id += 1
+
+    def remove_unit(self, unit, death=True):
+        team_id = unit.team_id
+        self.units.remove(unit)
+        self.teams[team_id].remove(unit)
+        if len(self.teams[team_id]) == 0:
+            self.resolve_game()
+
 
     def closest_unit(self, unit, filter_func='enemy'):
         '''
         filter_func: function or one of 'enemy', 'ally', 'all'
         '''
         if filter_func == 'enemy':
-            filter_func = lambda u: u.team != unit.team
+            filter_func = lambda u: u.team_id != unit.team_id
         elif filter_func == 'ally':
-            filter_func = lambda u: u.team == unit.team
+            filter_func = lambda u: u.team_id == unit.team_id
         elif filter_func == 'all':
             filter_func = lambda u: True
 
@@ -204,9 +235,49 @@ class Board:
                    key=lambda other: self.distance(unit.position,
                                                    other.position))
 
+    def start_game(self, timeout=25):
+        loop = asyncio.get_event_loop()
+        task = loop.create_task(self.battle())
+
+        loop.call_later(timeout, self.resolve_game)
+
+        try:
+            loop.run_until_complete(task)
+        except asyncio.CancelledError:
+            print('async cancel')
+            pass
+
+
+    async def battle(self):
+        self.tasks = [asyncio.ensure_future(unit.loop())
+                      for unit in self.units]
+        await asyncio.gather(*self.tasks)
+
+
+    def resolve_game(self):
+        for task in self.tasks:
+            task.cancel()
+
+        won = [False, False]
+        dmg = [0, 0]
+        for team_id in range(len(self.teams)):
+            team = self.teams[team_id]
+            other_team = 1 - team_id
+            if len(team) == 0:
+                won[other_team] = True
+                dmg[team_id] += 2
+            else:
+                for unit in team:
+                    dmg[other_team] += unit.star
+
+        print(won, dmg)
+        for team_id in range(len(self.teams)):
+            self.team_hp[team_id] -= dmg[team_id]
+
+        print('remaining hps', self.team_hp)
+
 
 GAME_BOARD = Board()
-
 
 
 
@@ -214,24 +285,13 @@ def setup(board):
     c1 = Unit(name='c1')
     c2 = Unit(name='c2', position=(1, 1), 
               AD=40, ATSPD=1.2)
-    board.add_unit(c1, team=0)
-    board.add_unit(c2, team=1)
+    board.add_unit(c1, team_id=0)
+    board.add_unit(c2, team_id=1)
     print(board.units)
     print([u.__dict__ for u in board.units])
     return
 
-async def battle(board):
-    await asyncio.gather(*[unit.loop() for unit in board.units])
-
-
-
-loop = asyncio.get_event_loop()
-task = loop.create_task(battle(GAME_BOARD))
 
 setup(GAME_BOARD)
-loop.call_later(10, task.cancel)
 
-try:
-    loop.run_until_complete(task)
-except asyncio.CancelledError:
-    pass
+GAME_BOARD.start_game()
