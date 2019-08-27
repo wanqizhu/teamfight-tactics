@@ -1,7 +1,9 @@
 import time
 import threading
 import asyncio
+import datetime
 
+import json
 
 class BackgroundTimer(threading.Thread):
     def __init__(self, delay, func):
@@ -26,59 +28,128 @@ class BackgroundTimer(threading.Thread):
 # TODO: enum types for e.g. team, traits
 
 
+class ChampionStats:
+    def __init__(self, stats):
+        self.damage = stats["offense"]["damage"]
+        self.attackSpeed = stats["offense"]["attackSpeed"]
+        self.dps = stats["offense"]["dps"]
+        self.range = stats["offense"]["range"]
+
+        self.health = stats["defense"]["health"]
+        self.armor = stats["defense"]["armor"]
+        self.magicResist = stats["defense"]["health"]
+
+    def __str__(self):
+        return str(self.__dict__)
+
+
+def load_champion_stats_table():
+    '''
+    https://solomid-resources.s3.amazonaws.com/blitz/tft/data/champions.json
+
+    https://solomid-resources.s3.amazonaws.com/blitz/tft/data/classes.json
+
+    https://solomid-resources.s3.amazonaws.com/blitz/tft/data/items.json
+
+    https://solomid-resources.s3.amazonaws.com/blitz/tft/data/origins.json
+
+    https://solomid-resources.s3.amazonaws.com/blitz/tft/data/tierlist.json
+    '''
+    with open('championStats.json') as f:
+        data = json.load(f)
+
+    assert 'Ahri' in data
+
+    # only inherit the data we want
+    for champion in data:
+        data[champion] = { k : data[champion][k] for k in
+                           ["name", "origin", "class",
+                            "cost", "ability", "stats"]}
+        data[champion]['items'] = []
+        data[champion]['stats'] = ChampionStats(data[champion]['stats'])
+
+    print(data['Akali'])
+    return data
+
+
+
 class Unit:
-    def __init__(self, name='', MAX_HP=500, AD=45,
-                 ATSPD=0.8, ARMOR=30, MR=20,
-                 MAX_MANA=100,
-                 position=(0, 0)
-                 ):
+    star_multiplier = [0.5, 1, 1.8, 3.6]
+    stats_table = load_champion_stats_table()
+
+    def __init__(self, name='', 
+                 stats=None,
+                 star = 1,
+                 position=(0, 0),
+                 logfile=None,
+                 **kwargs):
         self.name = name
-        self._max_hp = MAX_HP
-        self._hp = MAX_HP
-        self._ad = AD
+        self.stats = stats
         self._ap = 0
-        self._atspd = ATSPD
-        self._armor = ARMOR
-        self._mr = MR
-        self._max_mana = MAX_MANA
-        self._mana = 0
         self._mana_per_atk = 10
         self.target = None
         self.position = position
-        self.traits = set()
         self.star = 1
         self._id = None
         self.board = None
         self.start_time = time.perf_counter()
+        self.logfile = logfile
+        # CR-soon: write self to logfile
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+            print(key, value)
+
+        self._mana = self.ability['manaStart']
+        self._max_mana = self.ability['manaCost']
+        self._hp = self.max_hp
+
+
+    @classmethod
+    def fromName(cls, name, **kwargs):
+        if name not in cls.stats_table:
+            raise NameError(f'{name} not found')
+
+        attributes = cls.stats_table[name]
+        # merge the two dictionaries, allow kwargs overwrite
+        return cls(**{**attributes, **kwargs})
+
 
     @property
     def ad(self):
-        return self._ad
-
-    @property
-    def ap(self):
-        return self._ap
+        return (self.stats.damage
+               * self.star_multiplier[self.star])
     
     @property
     def atspd(self):
-        return self._atspd
+        return self.stats.attackSpeed
     
     @property
     def armor(self):
-        return self._armor
+        return self.stats.armor
     
     @property
     def mr(self):
-        return self._mr
+        return self.stats.magicResist
+
+    @property
+    def max_hp(self):
+        return (self.stats.health
+                * self.star_multiplier[self.star])
+
+    @property
+    def range(self):
+        return self.stats.range
+    
     
     @property
     def hp(self):
         return self._hp
     
     @property
-    def max_hp(self):
-        return self._max_hp
-    
+    def ap(self):
+        return self._ap
+
     @property
     def mana(self):
         return self._mana
@@ -91,17 +162,23 @@ class Unit:
     def mana_per_atk(self):
         return self._mana_per_atk
 
+    @property
+    def is_ranged(self):
+        return self.range > 1
+    
+
     def __repr__(self):
-        return "[%s (%s)] hp: %d/%d, mana: %d/%d" % (self.name, self._id,
-                                        self.hp, self.max_hp,
-                                        self.mana, self.max_mana)
+        return f"[{self.name} ({self._id})] HP: {self.hp}/{self.max_hp}"
 
     def __str__(self):
         return "[%s (%s)]" % (self.name, self._id)
 
+
     def add_to_board(self, board):
         board.add_unit(self)
         self.board = board
+        self._hp = self.max_hp  # ensure up to date
+        ## todo: reset everything else
 
     def acquire_target(self):
         if self.target is not None:
@@ -144,8 +221,13 @@ class Unit:
         return (True, dmg)
 
     def log(self, msg):
-        print('(%f)[%s %s] %s' % (time.perf_counter() - self.start_time, 
-                                  self.name, self._id, msg))
+        logstr = '(%f)[%s %s] %s' % (time.perf_counter() - self.start_time, 
+                                  self.name, self._id, msg)
+
+        if self.logfile:
+            self.logfile.write(logstr + '\n')
+        else:
+            print(logstr)
 
 
 
@@ -175,7 +257,7 @@ class Unit:
                 self.autoattack()
 
             await asyncio.sleep(1 / self.atspd)
-            self.log(repr(self))
+            # print(repr(self), end='\r')
 
 
 class Player:
@@ -244,14 +326,22 @@ class Board:
         try:
             loop.run_until_complete(task)
         except asyncio.CancelledError:
-            print('async cancel')
+            print('round over')
             pass
 
 
     async def battle(self):
         self.tasks = [asyncio.ensure_future(unit.loop())
-                      for unit in self.units]
+                      for unit in self.units] + [
+                      asyncio.ensure_future(self.print_units_hp())]
         await asyncio.gather(*self.tasks)
+
+
+    async def print_units_hp(self):
+        while True:
+            await asyncio.sleep(1)
+            print(' | '.join(
+                repr(unit) for unit in self.units), end='\r')
 
 
     def resolve_game(self):
@@ -279,19 +369,25 @@ class Board:
 
 GAME_BOARD = Board()
 
+logfile = open('combat_log_%s' % datetime.datetime.now().strftime('%Y_%m_%d'), 'a')
+logfile.write(str(datetime.datetime.now()))
+logfile.write('\n\n')
 
 
-def setup(board):
-    c1 = Unit(name='c1')
-    c2 = Unit(name='c2', position=(1, 1), 
-              AD=40, ATSPD=1.2)
+
+def setup(board, logfile=None):
+    c1 = Unit.fromName('Ahri', logfile=logfile)
+    c2 = Unit.fromName('Aatrox', position=(1, 1), 
+                       logfile=logfile)
     board.add_unit(c1, team_id=0)
     board.add_unit(c2, team_id=1)
     print(board.units)
     print([u.__dict__ for u in board.units])
-    return
+    print('\n')
 
 
-setup(GAME_BOARD)
+setup(GAME_BOARD, logfile)
 
 GAME_BOARD.start_game()
+
+logfile.close()

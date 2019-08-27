@@ -1,0 +1,112 @@
+Aatrox
+Demon   Blademaster $3  700 / 1260 / 2520   42 / 76 / 152   0.65    65 / 117 / 234  1 Space 25  20
+Ahri
+Wild    Sorcerer    $2  450 / 810 / 1620    28 / 50 / 99    0.55    50 / 90 / 180   3 Space 20  20
+Akali
+Ninja   Assassin    $4  650 / 1170 / 2340   56 / 101 / 202  0.7 80 / 144 / 288  1 Space 20  20
+Anivia
+Glacial Elementalist    $5  650 / 1170 / 2340   24 / 43 / 86    0.6 40 / 72 / 144   3 Space 20  20
+Ashe
+Glacial Ranger  $3  550 / 990 / 1980    46 / 82 / 164   0.7 65 / 117 / 234  4 Space 20  20
+Aurelion-Sol
+Dragon  Sorcerer    $4  650 / 1170 / 2340   24 / 43 / 86    0.6 40 / 72 / 144   3 Space 20  20
+Blitzcrank
+Robot   Brawler $2  600 / 1080 / 2160   25 / 45 / 90    0.5 50 / 90 / 180   1 Space 35  20
+Brand
+Demon   Elementalist    $4  700 / 1260 / 2520   36 / 65 / 130   0.6 60 / 108 / 216  3 Space 25  20
+Braum
+Glacial Guardian    $2  650 / 1170 / 2340   24 / 43 / 86    0.6 40 / 72 / 144   1 Space 75  20
+Camille
+Hextech Blademaster $1  550 / 990 / 1980    30 / 54 / 108   0.6 50 / 90 / 180   1 Space 25  20
+ChoGath
+Void    Brawler $4  1000 / 1900 / 3900  42 / 76 / 151   0.6 70 / 126 / 252  1 Space 20  20
+Darius
+Imperial    Knight  $1  600 / 1080 / 2160   25 / 45 / 90    0.5 50 / 90 / 180   1 Space 40  20
+Draven
+Imperial    Blademaster $4  700 / 1260 / 2520   49 / 88 / 176   0.75    75 / 135 / 270  3 Space 25  20
+Elise
+Demon   Shapeshifter    $1  500 / 900 / 1800    27 / 49 / 97    0.6 45 / 81 / 162   2 space 20  20
+Evelynn
+Demon   Assassin    $3  550 / 990 / 1980    42 / 72 / 151   0.6 70 / 126 / 252  1 Space 20  20
+Fiora
+Noble   Blademaster $1  400 / 720 / 1440    28 / 50 / 101   1.0 40 / 72 / 144   1 Space 25  20
+Gangplank
+Pirate  Blademaster Gunslinger  $3  700 / 1180 / 2260   33 / 59 / 119   0.65    55 / 99 / 198   1 Space 20  20
+Garen
+Noble   Knight  $1  600 / 1080 / 2160   30 / 54 / 109   0.6 50 / 90 / 180   1 Space 40  20
+Gnar
+Wild Yordle Shapeshifter    $4  750 / 1430 / 2960   35 / 63 / 126   0.7 50 / 90 / 180   2 Space 30  20
+Graves
+Pirate  Gunslinger  $1  450 / 850 / 1750    28 / 50 / 99    0.55    55 / 99 / 198   1 Space 20  20
+Jayce
+Hextech Shapeshifter    $2  600 / 1080 / 2160   39 / 69 / 139   0.7 55 / 99 / 198   1 Space 30  20
+Jinx
+Hextech Gunslinger  $4  550 / 990 / 1980    49 / 88 / 176   0.65    75 / 135 / 270  3 Space 20  20
+Karthus
+Phantom Sorcerer    $5  850 / 1530 / 3060   42 / 76 / 152   0.65    65 / 117 / 234  3 Space 25  20
+Kassadin
+Void    Sorcerer    $1  550 / 990 / 1980    33 / 59 / 119   0.6 55 / 99 / 198   1 Space 25  20
+Katarina
+Imperial    Assassin    $3  450 / 810 / 1620    45 / 81 / 162   0.6 75 / 135 / 270  1 Space 20  20
+Kayle
+Noble   Knight  $5  750 / 1440 / 2880   60 / 108 / 216  1.0 60 / 108 / 216  3 Space 40  20
+Kennen
+Ninja Yordle    Elementalist    $3  550 / 990 / 1980    42 / 76 / 152   0.65    65 / 117 / 234  2 Space 20  20
+KhaZix
+Void    Assassin    $1  500 / 900 / 1800    33 / 59 / 119   0.6 55 / 99 / 198   1 Space 20  20
+Kindred
+Phantom Ranger  $4  600 / 1080 / 2160   39 / 70 / 140   0.65    60 / 108 / 216  3 Space 20  20
+Leona
+Noble   Guardian    $4  750 / 1350 / 2700   25 / 45 / 89    0.55    45 / 81 / 162   1 Space 100 20
+Lissandra
+Glacial Elementalist    $2  450 / 810 / 1620    24 / 43 / 86    0.6 40 / 72 / 144   2 Space 20  20
+Lucian
+Noble   Gunslinger  $2  600 / 1080 / 2160   42 / 76 / 152   0.65    65 / 117 / 234  3 Space 25  20
+Lulu
+Yordle  Sorcerer    $2  500 / 900 / 1800    30 / 54 / 108   0.6 50 / 90 / 180   2 Space 20  20
+Miss-Fortune
+Pirate  Gunslinger  $5  700 / 1260 / 2520   64 / 115 / 230  0.85    75 / 135 / 270  3 Space 20  20
+Mordekaiser
+Phantom Knight  $1  550 / 990 / 1980    25 / 45 / 90    0.5 50 / 90 / 180   1 Space 40  20
+Morgana
+Demon   Sorcerer    $3  650 / 1170 / 2340   30 / 54 / 108   0.6 50 / 90 / 180   2 Space 20  20
+Nidalee
+Wild    Shapeshifter    $1  500 / 900 / 1800    33 / 59 / 117   0.65    50 / 90 / 180   3 Space 20  20
+Pantheon
+Dragon  Guardian    $5                          
+Poppy
+Yordle  Knight  $3  800 / 1350 / 2700   25 / 45 / 90    0.5 50 / 90 / 180   1 Space 40  20
+Pyke
+Pirate  Assassin    $2  600 / 1080 / 2160   36 / 65 / 130   0.6 60 / 108 / 216  1 Space 25  20
+RekSai
+Void    Brawler $2  650 / 1170 / 2340   33 / 59 / 117   0.65    50 / 90 / 180   1 Space 20  20
+Rengar
+Wild    Assassin    $3  550 / 990 / 1980    42 / 76 / 151   0.6 70 / 126 / 252  1 Space 20  20
+Sejuani
+Glacial Knight  $4  850 / 1530 / 3060   25 / 45 / 89    0.55    45 / 81 / 162   1 Space 40  25
+Shen
+Ninja   Blademaster $2  650 / 1170 / 2340   39 / 70 / 140   0.7 65 / 117 / 234  1 Space 30  20
+Shyvana
+Dragon  Shapeshifter    $3  650 / 1090 / 2080   33 / 59 / 117   0.7 50 / 90 / 180   1 Space 30  20
+Swain
+Imperial Demon  Shapeshifter    $5  850 / 1530 / 3060   42 / 76 / 152   0.65    65 / 117 / 234  2 Space 25  20
+Tristana
+Yordle  Gunslinger  $1  500 / 900 / 1800    33 / 59 / 117   0.65    50 / 90 / 180   4 Space 20  20
+Twisted-Fate
+Pirate  Sorcerer    $2  450 / 810 / 1620    30 / 54 / 108   0.75    40 / 72 / 144   3 Space 20  20
+Varus
+Demon   Ranger  $2  500 / 900 / 1800    35 / 63 / 126   0.7 50 / 90 / 180   4 Space 25  20
+Vayne
+Noble   Ranger  $1  550 / 990 / 1980    28 / 50 / 101   0.7 40 / 72 / 144   3 Space 25  20
+Veigar
+Yordle  Sorcerer    $3  500 / 900 / 1800    25 / 45 / 89    0.55    45 / 81 / 162   3 Space 20  20
+Vi
+Hextech Brawler $3  600 / 1080 / 2160   36 / 64 / 129   0.65    55 / 99 / 198   1 Space 25  20
+Volibear
+Glacial Brawler $3  700 / 1260 / 2520   41 / 74 / 149   0.55    75 / 135 / 270  1 Space 30  20
+Warwick
+Wild    Brawler $1  600 / 1080 / 2160   30 / 54 / 108   0.6 50 / 90 / 180   1 Space 30  20
+Yasuo
+Exile   Blademaster $5  700 / 1260 / 2520   75 / 135 / 270  1.0 75 / 135 / 270  1 Space 35  20
+Zed
+Ninja   Assassin    $2  500 / 900 / 1800    46 / 82 / 164   0.7 65 / 117 / 234  1 Space 25  20
