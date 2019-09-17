@@ -2,27 +2,7 @@ import time
 import threading
 import asyncio
 import datetime
-
 import json
-
-class BackgroundTimer(threading.Thread):
-    def __init__(self, delay, func):
-        self.delay = delay
-        self.func = func
-        super().__init__()
-
-    def run(self):
-        while True:
-            time.sleep(self.delay)
-            self.func()
-
-# t = BackgroundTimer(0.6, lambda: print('hello'))
-# t.start()
-
-# while True:
-#     time.sleep(1)
-#     print('wow')
-
 
 
 # TODO: enum types for e.g. team, traits
@@ -40,6 +20,9 @@ class ChampionStats:
         self.magicResist = stats["defense"]["health"]
 
     def __str__(self):
+        return str(self.__dict__)
+
+    def __repr__(self):
         return str(self.__dict__)
 
 
@@ -62,11 +45,12 @@ def load_champion_stats_table():
 
     # only inherit the data we want
     for champion in data:
+        traits = data[champion]["origin"] + data[champion]["class"]
         data[champion] = { k : data[champion][k] for k in
-                           ["name", "origin", "class",
-                            "cost", "ability", "stats"]}
+                           ["name", "cost", "ability", "stats"]}
         data[champion]['items'] = []
         data[champion]['stats'] = ChampionStats(data[champion]['stats'])
+        data[champion]['traits'] = traits
 
     print(data['Akali'])
     return data
@@ -75,18 +59,20 @@ def load_champion_stats_table():
 
 class Unit:
     star_multiplier = [0.5, 1, 1.8, 3.6]
+    MANA_PER_ATK = 10
+    MAX_MANA_FROM_DMG = 50
+    MANA_PER_DMG = 0.1
     stats_table = load_champion_stats_table()
 
     def __init__(self, name='', 
                  stats=None,
                  star = 1,
-                 position=(0, 0),
+                 position=(-1, -1),
                  logfile=None,
                  **kwargs):
         self.name = name
         self.stats = stats
         self._ap = 0
-        self._mana_per_atk = 10
         self.target = None
         self.position = position
         self.star = 1
@@ -94,6 +80,8 @@ class Unit:
         self.board = None
         self.start_time = time.perf_counter()
         self.logfile = logfile
+        self.traits = set()
+        self.status = []
         # CR-soon: write self to logfile
 
         for key, value in kwargs.items():
@@ -103,6 +91,7 @@ class Unit:
         self._mana = self.ability['manaStart']
         self._max_mana = self.ability['manaCost']
         self._hp = self.max_hp
+        self.targetable = True
 
 
     @classmethod
@@ -141,7 +130,6 @@ class Unit:
     def range(self):
         return self.stats.range
     
-    
     @property
     def hp(self):
         return self._hp
@@ -160,7 +148,12 @@ class Unit:
 
     @property
     def mana_per_atk(self):
-        return self._mana_per_atk
+        mana = self.MANA_PER_ATK 
+        if self.star <= 1:
+           mana *= 0.8
+        if 'Elementalist' in self.traits or 'Sorcerer' in self.traits:
+            mana *= 2
+        return mana
 
     @property
     def is_ranged(self):
@@ -168,29 +161,22 @@ class Unit:
     
 
     def __repr__(self):
-        return f"[{self.name} ({self._id})] HP: {self.hp}/{self.max_hp}"
+        return (f"[{self.name} @{self.position}] HP:{self.hp}/{self.max_hp},"
+                f"MP:{self.mana}/{self.max_mana}")
 
     def __str__(self):
         return "[%s (%s)]" % (self.name, self._id)
 
 
-    def add_to_board(self, board):
-        board.add_unit(self)
-        self.board = board
-        self._hp = self.max_hp  # ensure up to date
-        ## todo: reset everything else
-
     def acquire_target(self):
         if self.target is not None:
-            return 1
+            return self.target
 
         if not self.board:
-            return 0
+            return None
 
         self.target = self.board.closest_unit(self, filter_func='enemy')
-        if not self.target:
-            return 0
-        return 2
+        return self.target
 
     def autoattack(self):
         if not self.target:
@@ -203,19 +189,23 @@ class Unit:
 
 
     async def cast_spell(self):
-        self.log('casting...')
+        self.log(f"casting {self.ability['description']}...")
         return
 
     def receive_damage(self, dmg, source, dmg_type, is_autoattack=False):
-        if source == 'physical':
+        mana_gained = min(self.MAX_MANA_FROM_DMG, int(dmg * self.MANA_PER_DMG))
+        self._mana += mana_gained
+
+        if dmg_type == 'physical':
             dmg *= (1 - self.armor / (100 + self.armor))
-        if source == 'magical':
+        if dmg_type == 'magical':
             dmg *= (1 - self.mr / (100 + self.mr))
 
         return self.on_damage(dmg, source, dmg_type, is_autoattack)
 
 
     def on_damage(self, dmg, source, dmg_type, is_autoattack=False):
+        dmg = int(dmg)
         self._hp -= dmg
         self.log('%d dmg [%s] from [%s]' % (dmg, dmg_type, source))
         return (True, dmg)
@@ -233,7 +223,7 @@ class Unit:
 
     def death(self):
         self.log('died')
-        self.board.remove_unit(self, death=True)
+        self.board.remove_unit(self)
 
 
 
@@ -243,17 +233,32 @@ class Unit:
                 self.death()
                 return
 
-            if self.mana == self.max_mana:
+            ## TODO: deal w/ status e.g. stunned
+            # can we make this a closed set? e.g. burn effects, is_stunned, etc
+
+            if self.mana >= self.max_mana:
                 self._mana = 0
                 await self.cast_spell()
                 continue
 
-            if not self.target:
+            if self.target is None:
                 self.log('acquiring target...')
                 self.acquire_target()
             
             if self.target:
-                # should have target now
+                if not self.target.targetable:
+                    self.target = None
+                    self.acquire_target()
+
+                # check range
+                dist = self.board.distance(self.position, 
+                                           self.target.position)
+                while dist > self.range:
+                    self.board.search_path(self, self.target)
+                    await asyncio.sleep(1)
+                    dist = self.board.distance(self.position, 
+                           self.target.position)
+
                 self.autoattack()
 
             await asyncio.sleep(1 / self.atspd)
@@ -265,35 +270,129 @@ class Player:
     # should each player get a single board? with half playable
     # space and reflect over for battle
     # each spot points to a champion
-    pass
-
-
-class Board:
     def __init__(self):
-        self.units = set()  # maybe dict from position/id -> unit?
-        self._id = 0
-        # CR-soon: combaine team stats to a namedtuple?
-        self.teams = [set(), set()]
-        self.team_hp = [100, 100]
-        pass
+        self.champions = set()
+        self.level = 1
+        self.exp = 0
+        self.gold = 0
+        self.win_streak = 0
+        self.hp = 100
 
+    def take_damage(self, dmg):
+        self.hp -= dmg
+        print('dmg', dmg, ', remaining hp', self.hp)
+        if self.hp <= 0:
+            ## TODO
+            print('died')
+            pass
+
+
+## board during gameplay
+class Board:
+    WIDTH = 12
+    HEIGHT = 5
+
+    def __init__(self, p1, p2):
+        self.players = (p1, p2)
+        self.teams = (set(), set())
+        self.units = set()
+        self.pos_to_unit = dict()
+        self._id = 0
+
+        for unit in p1.champions:
+            x, y = unit.position
+            if y >= 0:
+                self.add_unit(unit, 0, (x, y))
+
+
+        ## TODO: class actives
+
+        for unit in p2.champions:
+            x, y = unit.position
+            if y >= 0:
+                self.add_unit(unit, 1, 
+                              (self.WIDTH - x, self.HEIGHT - y))
+
+
+    def add_unit(self, unit, team_id, position):
+        ## TODO: create new copy from name
+
+        unit.team_id = team_id
+        unit._id = self._id
+        self._id += 1
+        unit.position = position
+        unit.board = self
+
+        ## TODO: reset stats like hp
+
+        self.units.add(unit)
+        self.teams[team_id].add(unit)
+        self.pos_to_unit[(position)] = unit
+
+    def move_unit(self, unit, target_position):
+        assert target_position not in self.pos_to_unit
+        self.pos_to_unit.pop(unit.position)
+        self.pos_to_unit[target_position] = unit
+        unit.position = target_position
+
+
+    ## TODO: dist for unit,unit and raw (pos,pos)
     def distance(self, pos1, pos2):
+        ''' hexagonal distance 
+
+        0,0  2,0  4,0, ...
+          1,1  3,1  5,1, ...
+        0,2  2,2  4,2, ...
+
+        '''
         x1, y1 = pos1
         x2, y2 = pos2
-        return (x1-x2)**2 + (y1-y2)**2
+        return (abs(x1-x2) + abs(y1-y2))//2
 
-    def add_unit(self, unit, team_id=0):
-        self.units.add(unit)
-        unit._id = self._id
-        unit.team_id = team_id
-        unit.board = self
-        self.teams[team_id].add(unit)
-        self._id += 1
+    def search_path(self, source_unit, target_unit):
+        '''
+        champion path-finding
 
-    def remove_unit(self, unit, death=True):
+        only makes a single step
+        '''
+        start_pos = source_unit.position
+        target_pos = target_unit.position
+        atk_range = source_unit.range
+
+        curr_dist = self.distance(start_pos, target_pos)
+        if curr_dist <= atk_range:
+            return start_pos
+
+        x, y = start_pos
+        for x_delta, y_delta in [(-2, 0), (-1, 1), (1, 1), (2, 0), (1, -1), (-1, -1)]:
+            tentative_pos = (x+x_delta, y+y_delta)
+            if (tentative_pos in self.pos_to_unit
+                    or tentative_pos[0] < 0
+                    or tentative_pos[0] > self.WIDTH
+                    or tentative_pos[1] < 0
+                    or tentative_pos[1] > self.HEIGHT):
+                continue
+
+            if self.distance(tentative_pos, target_pos) < curr_dist:
+                # take a step closer
+
+                # TODO: update board pos
+                self.move_unit(source_unit, tentative_pos)
+                source_unit.log(f'moving to {tentative_pos}')
+
+                return tentative_pos
+
+        return start_pos
+
+
+
+    def remove_unit(self, unit):
         team_id = unit.team_id
+        position = unit.position
         self.units.remove(unit)
         self.teams[team_id].remove(unit)
+        self.pos_to_unit.pop(position)
+
         if len(self.teams[team_id]) == 0:
             self.resolve_game()
 
@@ -333,20 +432,23 @@ class Board:
     async def battle(self):
         self.tasks = [asyncio.ensure_future(unit.loop())
                       for unit in self.units] + [
-                      asyncio.ensure_future(self.print_units_hp())]
+                      asyncio.ensure_future(self.print_board())]
         await asyncio.gather(*self.tasks)
 
 
-    async def print_units_hp(self):
+    async def print_board(self):
         while True:
-            await asyncio.sleep(1)
+            print(' '*80, end='\r')
             print(' | '.join(
                 repr(unit) for unit in self.units), end='\r')
+            await asyncio.sleep(1)
 
 
     def resolve_game(self):
         for task in self.tasks:
             task.cancel()
+
+        print('\n\n')
 
         won = [False, False]
         dmg = [0, 0]
@@ -360,14 +462,10 @@ class Board:
                 for unit in team:
                     dmg[other_team] += unit.star
 
-        print(won, dmg)
         for team_id in range(len(self.teams)):
-            self.team_hp[team_id] -= dmg[team_id]
-
-        print('remaining hps', self.team_hp)
+            self.players[team_id].take_damage(dmg[team_id])
 
 
-GAME_BOARD = Board()
 
 logfile = open('combat_log_%s' % datetime.datetime.now().strftime('%Y_%m_%d'), 'a')
 logfile.write(str(datetime.datetime.now()))
@@ -375,18 +473,27 @@ logfile.write('\n\n')
 
 
 
-def setup(board, logfile=None):
-    c1 = Unit.fromName('Ahri', logfile=logfile)
+def setup(logfile=None):
+    p1 = Player()
+    p2 = Player()
+
+    c1 = Unit.fromName('Ahri', position=(0, 0), 
+                       logfile=logfile)
     c2 = Unit.fromName('Aatrox', position=(1, 1), 
                        logfile=logfile)
-    board.add_unit(c1, team_id=0)
-    board.add_unit(c2, team_id=1)
+    p1.champions.add(c1)
+    p2.champions.add(c2)
+
+    board = Board(p1, p2)
+
     print(board.units)
     print([u.__dict__ for u in board.units])
     print('\n')
 
+    return board
 
-setup(GAME_BOARD, logfile)
+
+GAME_BOARD = setup(logfile)
 
 GAME_BOARD.start_game()
 
