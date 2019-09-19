@@ -78,6 +78,7 @@ class Unit:
         self.logfile = logfile
         self.traits = set()
         self.status = []
+        self.team_id = None
         # CR-soon: write self to logfile
 
         for key, value in kwargs.items():
@@ -90,8 +91,9 @@ class Unit:
         self.is_targetable = True
 
 
+
     @classmethod
-    def fromName(cls, name, **kwargs):
+    def from_name(cls, name, **kwargs):
         if name not in cls.stats_table:
             raise NameError(f'{name} not found')
 
@@ -170,6 +172,11 @@ class Unit:
     def __str__(self):
         return "[%s (%s)]" % (self.name, self._id)
 
+    async def sleep(self, time):
+        if self.board:
+            await self.board.sleep(time)
+        else:
+            await asyncio.sleep(time)
 
     def acquire_target(self):
         if self.target is not None:
@@ -268,14 +275,37 @@ class Unit:
                                            self.target.position)
                 while dist > self.range:
                     self.board.search_path(self, self.target)
-                    await asyncio.sleep(1)
+                    await self.sleep(1)
                     dist = self.board.distance(self.position, 
                            self.target.position)
 
                 self.autoattack()
 
-            await asyncio.sleep(1 / self.atspd)
+            await self.sleep(1 / self.atspd)
             # print(repr(self), end='\r')
+
+
+class Aatrox(Unit):
+    SPELL_DMG = [180, 300, 600, 900]
+    async def spell_effect(self):
+        if self.target:
+            dist = self.board.distance(self, self.target)
+            aim_center = self.position  # default in case weird stuff happens
+
+            # the hex in the direction of our target should have less distance
+            for neighbor in self.board._neighbors:
+                pos = (self.position[0] + neighbor[0],
+                       self.position[1] + neighbor[1])
+                if self.board.distance(pos, self.target) < dist:
+                    aim_center = pos
+                    break
+
+            assert aim_center != self.position
+
+            await self.sleep(0.25)
+            for target in self.board.circle_range(aim_center, radius=1):
+                if target.team_id != self.team_id:
+                    self.deal_damage(target, self.SPELL_DMG[self.star], 'magical')
 
 
 
@@ -286,6 +316,17 @@ class Ahri(Unit):
             self.acquire_target()
 
         if self.target:
-            self.deal_damage(self.target, self.SPELL_DMG[self.star], 'magical')
-            await asyncio.sleep(0.2)
-            self.deal_damage(self.target, self.SPELL_DMG[self.star], 'true')
+            start_pos = self.position
+            end_pos = self.target.position
+
+            targets = self.board.line_trace(start_pos, end_pos, length=6)
+            for target in targets:
+                if target.team_id != self.team_id:
+                    self.deal_damage(target, self.SPELL_DMG[self.star], 'magical')
+            
+            await self.sleep(0.25)
+            
+            targets = self.board.line_trace(end_pos, start_pos, length=6)
+            for target in targets:
+                if target.team_id != self.team_id:
+                    self.deal_damage(target, self.SPELL_DMG[self.star], 'true')
