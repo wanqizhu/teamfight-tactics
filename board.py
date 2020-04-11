@@ -79,7 +79,7 @@ class Board:
         x2, y2 = pos2
         dx = abs(x1-x2)
         dy = abs(y1-y2)
-        return dx + max(0, (dx - dy)//2)
+        return dy + max(0, (dx - dy)//2)
 
     def search_path(self, source_unit, target_unit):
         '''
@@ -90,6 +90,7 @@ class Board:
         start_pos = source_unit.position
         target_pos = target_unit.position
         atk_range = source_unit.range
+        print(source_unit.range)
 
         curr_dist = self.distance(start_pos, target_pos)
         if curr_dist <= atk_range:
@@ -297,7 +298,6 @@ class Board:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT: sys.exit()
 
-            print("drawing bg...")
             self.draw_background()
 
             for unit in self.units:
@@ -307,8 +307,6 @@ class Board:
                     self.screen.blit(unit.img, 
                                     (x - unit.img.get_width()/2,
                                      y - unit.img.get_height()/2))
-
-            print(self.screen, "about to flip...")
             pygame.display.flip()
             await self.sleep(0.25)
 
