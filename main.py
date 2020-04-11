@@ -43,12 +43,16 @@ def setup(logfile=None):
                        logfile=logfile)
     c1 = Unit.from_name('Ahri', position=(2, 0), 
                        logfile=logfile)
-    c2 = Unit.from_name('Ahri', position=(1, 1), 
-                       logfile=logfile)
 
     p1.champions.add(c0)
     p1.champions.add(c1)
+
+    c2 = Unit.from_name('Ahri', position=(1, 1), 
+                       logfile=logfile)
+    c3 = Unit.from_name('Ahri', position=(5, 1), 
+                       logfile=logfile)
     p2.champions.add(c2)
+    p2.champions.add(c3)
 
     board = Board(p1, p2, speed=2)
 

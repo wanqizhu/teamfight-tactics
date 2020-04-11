@@ -3,9 +3,12 @@ https://www.redblobgames.com/grids/hexagons/#distances
 https://kirankoduru.github.io/python/sublime-text-ninja.html
 
 
-- show mana bar
 - TODO: make other star gaurdians
   - poppy
+
+- show dmg numbers
+  - maybe also source?
+- show ahri's projectile
 
 
 

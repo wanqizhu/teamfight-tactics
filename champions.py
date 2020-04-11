@@ -51,6 +51,14 @@ def load_champion_stats_table(set_name="set3"):
         d['stats'] = ChampionStats(d['stats'])
         d['traits'] = traits
 
+        # parse ability stats
+        s = {}
+        for line in d['ability']['stats']:
+            values = line['value'].split("/")  # 200 / 400 / 600, possibly w/ %
+            s[line['type']] = list(map(lambda x: float(x.strip(" %")), values))
+
+        d['ability']['stats'] = s
+
         filtered_data[champion] = d
 
     print('champion data loaded')
@@ -108,6 +116,12 @@ class Unit:
         print(f'loaded {name} as {champion_cls}')
         # merge the two dictionaries, allow kwargs overwrite
         return champion_cls(**{**attributes, **kwargs})
+
+
+    @property
+    def SPELL_DMG(self):
+        return self.ability["stats"]["Damage"]
+    
 
     @property
     def time_alive(self):
@@ -330,7 +344,6 @@ class Unit:
 
 
 class Ahri(Unit):
-    SPELL_DMG = [60, 100, 200, 300]
     async def spell_effect(self):
         if self.target is None or not self.target.is_targetable:
             self.acquire_target()
