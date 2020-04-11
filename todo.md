@@ -16,8 +16,6 @@ vvv make this so logging & printing looks nice
 - global timestamp from board rather than each champion?
 
 
-- read in SPELL_DAMAGE from .json
-
 propegate errors from async tasks somehow
 
 - try out: what happens when a champion gets full mana while not attacking? is it queued properly?

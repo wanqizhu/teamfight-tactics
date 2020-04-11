@@ -283,6 +283,7 @@ class Unit:
 
     def death(self):
         self.log('died')
+        self.is_targetable = False
         # TODO: clear all tasks and effects
         self.board.remove_unit(self)
 
