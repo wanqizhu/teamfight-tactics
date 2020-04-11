@@ -1,13 +1,17 @@
-import time
 import asyncio
-import datetime
 import json
 import math
 import sys, pygame, math
 
 from champions import Unit
 
-
+BLACK = 0, 0, 0
+WHITE = 255, 255, 255
+GREEN = 0, 128, 0
+RED = 128, 0, 0
+BLUE = 0, 0, 128
+pygame.init()
+font = pygame.font.SysFont("comicsans", 30)
 
 
 
@@ -28,7 +32,6 @@ class Board:
         self.speed = speed
         self._spaces = sum([[(x, y) for x in range(y%2, self.WIDTH+1)] for y in range(self.HEIGHT+1)], [])
 
-        pygame.init()
         self.screen_size = list(map(int, self.get_hex_center_2d((self.WIDTH+1, self.HEIGHT))))
         self.screen = pygame.display.set_mode(self.screen_size)
 
@@ -275,13 +278,32 @@ class Board:
 
 
     def draw_background(self):
-        black = 0, 0, 0
-        self.screen.fill(black)
+        self.screen.fill(BLACK)
 
         for r in range(self.HEIGHT):
             for c in range(r % 2, self.WIDTH, 2):
                 pygame.draw.lines(self.screen, (255, 0, 0), True,
                                   self.get_hex_corners_2d((c, r)))
+
+
+    def draw_unit(self, unit):
+        x, y = self.get_hex_center_2d(unit.position)
+        width = unit.img.get_width()
+        topleftx = x - width/2
+        toplefty = y - unit.img.get_height()/2
+
+        # align the Surface img to the hex center
+        self.screen.blit(unit.img, 
+                        (topleftx, toplefty))
+
+        # draw hp bars
+        pygame.draw.rect(self.screen, RED, 
+                         (topleftx, toplefty - 30, width, 20))
+        pygame.draw.rect(self.screen, GREEN, 
+                         (topleftx, toplefty - 30, 
+                          (unit.hp / unit.max_hp) * width, 20))
+        hptext = font.render("HP: %d/%d" % (unit.hp, unit.max_hp), 1, BLACK)
+        self.screen.blit(hptext, (topleftx, toplefty - 30))
 
 
     async def visualize(self):
@@ -292,9 +314,6 @@ class Board:
                     keepRunning = True
                     break
 
-            if not keepRunning:
-                break
-
             for event in pygame.event.get():
                 if event.type == pygame.QUIT: sys.exit()
 
@@ -302,18 +321,18 @@ class Board:
 
             for unit in self.units:
                 if unit.img:
-                    x, y = self.get_hex_center_2d(unit.position)
-                    # align the Surface img to the hex center
-                    self.screen.blit(unit.img, 
-                                    (x - unit.img.get_width()/2,
-                                     y - unit.img.get_height()/2))
+                    self.draw_unit(unit)
+
+            if not keepRunning:
+                text = font.render("Round over", 1, WHITE)
+                self.screen.blit(text, (300, 300))
+
             pygame.display.flip()
             await self.sleep(0.25)
 
 
 
     def start_game(self, timeout=25):
-        
         loop = asyncio.get_event_loop()
         task = loop.create_task(self.battle())
 
@@ -325,13 +344,18 @@ class Board:
             print('round over')
             pass
 
+        # wait 5s w/o blocking just for display purposes
+        w = loop.create_task(self.sleep(5))
+        loop.run_until_complete(w)
+
+
 
     async def battle(self):
         self.tasks = [asyncio.ensure_future(unit.loop())
                       for unit in self.units] + [
                       asyncio.ensure_future(self.print_board())]
 
-        asyncio.ensure_future(self.visualize())
+        self.graphicsTask = asyncio.ensure_future(self.visualize())
         await asyncio.gather(*self.tasks)
 
 
@@ -347,8 +371,6 @@ class Board:
         for task in self.tasks:
             task.cancel()
 
-        print('\n\n')
-
         won = [False, False]
         dmg = [0, 0]
         for team_id in range(len(self.teams)):
@@ -363,3 +385,4 @@ class Board:
 
         for team_id in range(len(self.teams)):
             self.players[team_id].take_damage(dmg[team_id])
+

@@ -3,6 +3,10 @@ https://www.redblobgames.com/grids/hexagons/#distances
 https://kirankoduru.github.io/python/sublime-text-ninja.html
 
 
+- TODO: make other star gaurdians
+- make hp bar show up
+
+
 vvv make this so logging & printing looks nice
 - global timestamp from board rather than each champion?
 
