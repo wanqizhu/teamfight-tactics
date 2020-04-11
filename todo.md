@@ -1,11 +1,20 @@
-- targeting
-  - check untargetability instead of `self.target is None`
+https://www.redblobgames.com/grids/hexagons/#distances
+
+https://kirankoduru.github.io/python/sublime-text-ninja.html
+
 
 vvv make this so logging & printing looks nice
 - global timestamp from board rather than each champion?
 
 
-- should spells cast even while waiting for an autoattack?
+- read in SPELL_DAMAGE from .json
+
+propegate errors from async tasks somehow
+
+- try out: what happens when a champion gets full mana while not attacking? is it queued properly?
+  - what happens when champion dies mid action?
+
+
 
 
 champions general

@@ -39,10 +39,14 @@ def setup(logfile=None):
     p1 = Player()
     p2 = Player()
 
-    c1 = Unit.from_name('Ahri', position=(0, 0), 
+    c0 = Unit.from_name('Ahri', position=(0, 0), 
                        logfile=logfile)
-    c2 = Unit.from_name('Aatrox', position=(1, 1), 
+    c1 = Unit.from_name('Ahri', position=(2, 0), 
                        logfile=logfile)
+    c2 = Unit.from_name('Ahri', position=(1, 1), 
+                       logfile=logfile)
+
+    p1.champions.add(c0)
     p1.champions.add(c1)
     p2.champions.add(c2)
 

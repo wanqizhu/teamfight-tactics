@@ -3,13 +3,20 @@ import asyncio
 import datetime
 import json
 import math
+import sys, pygame, math
 
 from champions import Unit
+
+
+
+
 
 
 class Board:
     WIDTH = 13
     HEIGHT = 5
+    MARGIN = 50
+    HEX_LENGTH = 100  # Euclidean length for display
     _neighbors = [(-2, 0), (-1, 1), (1, 1), 
                   (2, 0), (1, -1), (-1, -1)]
 
@@ -17,11 +24,13 @@ class Board:
         self.players = (p1, p2)
         self.teams = (set(), set())
         self.units = set()
-        self.pos_to_unit = dict()
         self._id = 0
         self.speed = speed
         self._spaces = sum([[(x, y) for x in range(y%2, self.WIDTH+1)] for y in range(self.HEIGHT+1)], [])
 
+        pygame.init()
+        self.screen_size = list(map(int, self.get_hex_center_2d((self.WIDTH+1, self.HEIGHT))))
+        self.screen = pygame.display.set_mode(self.screen_size)
 
 
         for unit in p1.champions:
@@ -86,10 +95,9 @@ class Board:
         if curr_dist <= atk_range:
             return start_pos
 
-        x, y = start_pos
-        for x_delta, y_delta in self._neighbors:
-            tentative_pos = (x+x_delta, y+y_delta)
-            if (tentative_pos in self.pos_to_unit
+        for neighbor in self._neighbors:
+            tentative_pos = start_pos + neighbor
+            if (self.get_unit_at_pos(tentative_pos) is not None
                     or tentative_pos[0] < 0
                     or tentative_pos[0] > self.WIDTH
                     or tentative_pos[1] < 0
@@ -155,21 +163,19 @@ class Board:
 
         hits = []
 
-        for pos in self.pos_to_unit.keys():
+        for unit in self.units:
             # directly check if pt in rectangle
 
-            x_euc = pos[0]
-            y_euc = pos[1]*math.sqrt(3)
+            pos_euc = unit.position * (1, math.sqrt(3))
 
-            pt_vec = (x_euc - rect_base_pt[0],
-                      y_euc - rect_base_pt[1])
+            pt_vec = pos_euc - rect_base_pt
 
             width_dot = pt_vec[0]*rect_width_vec[0] + pt_vec[1]*rect_width_vec[1]
             length_dot = pt_vec[0]*rect_length_vec[0] + pt_vec[1]*rect_length_vec[1]
             
             if (width_dot > -0.01 and width_dot < 4*width*width+0.01
                 and length_dot > -0.01 and length_dot < length*length+0.01):
-                    hits.append(self.pos_to_unit[pos])
+                    hits.append(unit)
 
             # print('pt', x_euc, y_euc, width_dot, length_dot)
         
@@ -179,9 +185,9 @@ class Board:
 
     def circle_range(self, center, radius=1):
         hits = []
-        for pos in self.pos_to_unit.keys():
-            if self.distance(pos, center) <= radius:
-                hits.append(self.pos_to_unit[pos])
+        for unit in self.units:
+            if self.distance(unit, center) <= radius:
+                hits.append(unit)
 
         print(f'circle range: center {center} radius {radius}')
         print(hits)
@@ -189,6 +195,12 @@ class Board:
 
 
     ''' unit placement logic '''
+    def get_unit_at_pos(self, pos):
+        for unit in self.units:
+            if all(unit.position == pos):
+                return unit
+        return None
+
 
     def add_unit(self, unit, team_id, position):
         ## TODO: create new copy from name
@@ -198,17 +210,18 @@ class Board:
         self._id += 1
         unit.position = position
         unit.board = self
+        try:
+            unit.img = pygame.image.load("imgs/%s.png" % unit.name)
+        except:
+            unit.img = None
 
         ## TODO: reset stats like hp
 
         self.units.add(unit)
         self.teams[team_id].add(unit)
-        self.pos_to_unit[(position)] = unit
 
     def move_unit(self, unit, target_position):
-        assert target_position not in self.pos_to_unit
-        self.pos_to_unit.pop(unit.position)
-        self.pos_to_unit[target_position] = unit
+        assert self.get_unit_at_pos(target_position) is None
         unit.position = target_position
 
     def remove_unit(self, unit):
@@ -216,7 +229,6 @@ class Board:
         position = unit.position
         self.units.remove(unit)
         self.teams[team_id].remove(unit)
-        self.pos_to_unit.pop(position)
 
         if len(self.teams[team_id]) == 0:
             self.resolve_game()
@@ -241,11 +253,73 @@ class Board:
                    key=lambda other: self.distance(unit.position,
                                                    other.position))
 
+    def get_hex_center_2d(self, pos):
+        ''' output euclidean coordinates '''
+        c, r = pos
+        x = self.MARGIN + (c+1) * self.HEX_LENGTH * math.sqrt(3) / 2
+        y = self.MARGIN + self.HEX_LENGTH * (1 + r * 3 / 2)
+        return (x, y)
+
+    def get_hex_corners_2d(self, pos):
+        x, y = self.get_hex_center_2d(pos)
+        corners = [(x, y - self.HEX_LENGTH),
+                   (x + self.HEX_LENGTH * math.sqrt(3) / 2, y - self.HEX_LENGTH / 2),
+                   (x + self.HEX_LENGTH * math.sqrt(3) / 2, y + self.HEX_LENGTH / 2),
+                   (x, y + self.HEX_LENGTH),
+                   (x - self.HEX_LENGTH * math.sqrt(3) / 2, y + self.HEX_LENGTH / 2),
+                   (x - self.HEX_LENGTH * math.sqrt(3) / 2, y - self.HEX_LENGTH / 2)]
+
+        return corners
+
+
+
+    def draw_background(self):
+        black = 0, 0, 0
+        self.screen.fill(black)
+
+        for r in range(self.HEIGHT):
+            for c in range(r % 2, self.WIDTH, 2):
+                pygame.draw.lines(self.screen, (255, 0, 0), True,
+                                  self.get_hex_corners_2d((c, r)))
+
+
+    async def visualize(self):
+        while True:
+            keepRunning = False
+            for t in self.tasks:
+                if not t.done():
+                    keepRunning = True
+                    break
+
+            if not keepRunning:
+                break
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT: sys.exit()
+
+            print("drawing bg...")
+            self.draw_background()
+
+            for unit in self.units:
+                if unit.img:
+                    x, y = self.get_hex_center_2d(unit.position)
+                    # align the Surface img to the hex center
+                    self.screen.blit(unit.img, 
+                                    (x - unit.img.get_width()/2,
+                                     y - unit.img.get_height()/2))
+
+            print(self.screen, "about to flip...")
+            pygame.display.flip()
+            await self.sleep(0.25)
+
+
+
     def start_game(self, timeout=25):
+        
         loop = asyncio.get_event_loop()
         task = loop.create_task(self.battle())
 
-        loop.call_later(timeout, self.resolve_game)
+        loop.call_later(timeout / self.speed, self.resolve_game)
 
         try:
             loop.run_until_complete(task)
@@ -258,6 +332,8 @@ class Board:
         self.tasks = [asyncio.ensure_future(unit.loop())
                       for unit in self.units] + [
                       asyncio.ensure_future(self.print_board())]
+
+        asyncio.ensure_future(self.visualize())
         await asyncio.gather(*self.tasks)
 
 
