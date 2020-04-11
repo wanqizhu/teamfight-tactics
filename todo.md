@@ -3,8 +3,10 @@ https://www.redblobgames.com/grids/hexagons/#distances
 https://kirankoduru.github.io/python/sublime-text-ninja.html
 
 
+- show mana bar
 - TODO: make other star gaurdians
-- make hp bar show up
+  - poppy
+
 
 
 vvv make this so logging & printing looks nice

@@ -10,6 +10,7 @@ WHITE = 255, 255, 255
 GREEN = 0, 128, 0
 RED = 128, 0, 0
 BLUE = 0, 0, 128
+DARKBLUE = 0, 0, 255
 pygame.init()
 font = pygame.font.SysFont("comicsans", 30)
 
@@ -19,7 +20,7 @@ font = pygame.font.SysFont("comicsans", 30)
 class Board:
     WIDTH = 13
     HEIGHT = 5
-    MARGIN = 50
+    MARGIN = 60
     HEX_LENGTH = 100  # Euclidean length for display
     _neighbors = [(-2, 0), (-1, 1), (1, 1), 
                   (2, 0), (1, -1), (-1, -1)]
@@ -32,7 +33,8 @@ class Board:
         self.speed = speed
         self._spaces = sum([[(x, y) for x in range(y%2, self.WIDTH+1)] for y in range(self.HEIGHT+1)], [])
 
-        self.screen_size = list(map(int, self.get_hex_center_2d((self.WIDTH+1, self.HEIGHT))))
+        _x, _y = self.get_hex_center_2d((self.WIDTH+1, self.HEIGHT))
+        self.screen_size = (int(_x) + self.MARGIN, int(_y) + self.MARGIN)
         self.screen = pygame.display.set_mode(self.screen_size)
 
 
@@ -296,14 +298,23 @@ class Board:
         self.screen.blit(unit.img, 
                         (topleftx, toplefty))
 
-        # draw hp bars
+        # draw hp bar
         pygame.draw.rect(self.screen, RED, 
-                         (topleftx, toplefty - 30, width, 20))
+                         (topleftx, toplefty - 50, width, 20))
         pygame.draw.rect(self.screen, GREEN, 
-                         (topleftx, toplefty - 30, 
+                         (topleftx, toplefty - 50, 
                           (unit.hp / unit.max_hp) * width, 20))
         hptext = font.render("HP: %d/%d" % (unit.hp, unit.max_hp), 1, BLACK)
-        self.screen.blit(hptext, (topleftx, toplefty - 30))
+        self.screen.blit(hptext, (topleftx, toplefty - 50))
+
+        # draw mana bar
+        pygame.draw.rect(self.screen, DARKBLUE, 
+                         (topleftx, toplefty - 30, width, 20))
+        pygame.draw.rect(self.screen, BLUE, 
+                         (topleftx, toplefty - 30, 
+                          (unit.mana / unit.max_mana) * width, 20))
+        manatext = font.render("MP: %d/%d" % (unit.mana, unit.max_mana), 1, BLACK)
+        self.screen.blit(manatext, (topleftx, toplefty - 30))
 
 
     async def visualize(self):
