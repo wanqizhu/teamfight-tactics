@@ -49,7 +49,7 @@ def setup(logfile=None):
 
     c2 = Unit.from_name('Ahri', position=(1, 1), 
                        logfile=logfile)
-    c3 = Unit.from_name('Ahri', position=(5, 1), 
+    c3 = Unit.from_name('Poppy', position=(9, 1), 
                        logfile=logfile)
     p2.champions.add(c2)
     p2.champions.add(c3)

@@ -240,9 +240,10 @@ class Board:
             self.resolve_game()
 
 
-    def closest_unit(self, unit, filter_func='enemy'):
+    def closest_unit(self, unit, filter_func='enemy', getFarthest=False):
         '''
-        filter_func: function or one of 'enemy', 'ally', 'all'
+        @filter_func: function or one of 'enemy', 'ally', 'all'
+        @getFarthest: if True, then get farthest unit instead
         '''
         if filter_func == 'enemy':
             filter_func = lambda u: u.team_id != unit.team_id
@@ -255,9 +256,10 @@ class Board:
         if len(possible_units) == 0:
             return None
 
+        dist_multiplier = 1 if not getFarthest else -1
         return min(possible_units, 
-                   key=lambda other: self.distance(unit.position,
-                                                   other.position))
+                   key=lambda other: dist_multiplier * 
+                        self.distance(unit.position, other.position))
 
     def get_hex_center_2d(self, pos):
         ''' output euclidean coordinates '''

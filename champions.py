@@ -120,7 +120,11 @@ class Unit:
 
     @property
     def SPELL_DMG(self):
-        return self.ability["stats"]["Damage"]
+        return self.ability["stats"].get("Damage", [0, 0, 0])[self.star - 1]
+    
+    @property
+    def SPELL_SHIELD(self):
+        return self.ability["stats"].get("Shield", [0, 0, 0])[self.star - 1]
     
 
     @property
@@ -254,6 +258,10 @@ class Unit:
         pass
 
 
+    def shield(self, amount, expire=-1):
+        # TODO
+        pass
+
     def receive_damage(self, dmg, source, dmg_type, is_autoattack=False):
         mana_gained = min(self.MAX_MANA_FROM_DMG, int(dmg * self.MANA_PER_DMG))
         self._mana += mana_gained
@@ -358,11 +366,23 @@ class Ahri(Unit):
         targets = self.board.line_trace(start_pos, end_pos, length=6)
         for target in targets:
             if target.team_id != self.team_id:
-                self.deal_damage(target, self.SPELL_DMG[self.star], 'magical')
+                self.deal_damage(target, self.SPELL_DMG, 'magical')
         
         await self.sleep(0.25)
         
         targets = self.board.line_trace(end_pos, start_pos, length=6)
         for target in targets:
             if target.team_id != self.team_id:
-                self.deal_damage(target, self.SPELL_DMG[self.star], 'true')
+                self.deal_damage(target, self.SPELL_DMG, 'true')
+
+
+class Poppy(Unit):
+    async def spell_effect(self):
+        # find farthest target
+        target = self.board.closest_unit(self, 'enemy', getFarthest=True)
+
+        self.deal_damage(target, self.SPELL_DMG, 'magical')
+        
+        await self.sleep(0.25)
+        
+        self.shield(self.SPELL_SHIELD)
