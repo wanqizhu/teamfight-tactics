@@ -4,6 +4,8 @@ import math
 import sys, pygame, math
 
 from champions import Unit
+from hex_utils import (doublewidth_distance, 
+                      doublewidth_rotation)
 
 BLACK = 0, 0, 0
 WHITE = 255, 255, 255
@@ -13,7 +15,6 @@ BLUE = 0, 0, 128
 DARKBLUE = 0, 0, 255
 pygame.init()
 font = pygame.font.SysFont("comicsans", 28)
-
 
 
 
@@ -65,27 +66,6 @@ class Board:
         return (x+y)%2 == 0
 
 
-    def distance(self, pos1, pos2):
-        ''' hexagonal grid using Doubled Width Coord
-
-        https://www.redblobgames.com/grids/hexagons
-
-        0,0  2,0  4,0, ...
-          1,1  3,1  5,1, ...
-        0,2  2,2  4,2, ...
-
-        '''
-        if isinstance(pos1, Unit):
-            pos1 = pos1.position
-        if isinstance(pos2, Unit):
-            pos2 = pos2.position
-
-        x1, y1 = pos1
-        x2, y2 = pos2
-        dx = abs(x1-x2)
-        dy = abs(y1-y2)
-        return dy + max(0, (dx - dy)//2)
-
     def search_path(self, source_unit, target_unit):
         '''
         champion path-finding
@@ -97,7 +77,7 @@ class Board:
         atk_range = source_unit.range
         print(source_unit.range)
 
-        curr_dist = self.distance(start_pos, target_pos)
+        curr_dist = doublewidth_distance(start_pos, target_pos)
         if curr_dist <= atk_range:
             return start_pos
 
@@ -110,7 +90,7 @@ class Board:
                     or tentative_pos[1] > self.HEIGHT):
                 continue
 
-            if self.distance(tentative_pos, target_pos) < curr_dist:
+            if doublewidth_distance(tentative_pos, target_pos) < curr_dist:
                 # take a step closer
 
                 # TODO: update board pos
@@ -120,6 +100,7 @@ class Board:
                 return tentative_pos
 
         return start_pos
+
 
     def line_trace(self, start, target, width=1, length=-1):
         '''
@@ -192,11 +173,52 @@ class Board:
     def circle_range(self, center, radius=1):
         hits = []
         for unit in self.units:
-            if self.distance(unit, center) <= radius:
+            if doublewidth_distance(unit.position, center) <= radius:
                 hits.append(unit)
 
-        print(f'circle range: center {center} radius {radius}')
-        print(hits)
+        print(f'circle range: center {center} radius {radius}, hitting: {hits}')
+        return hits
+
+
+    def cone_range(self, center, left_edge, span=1, length=2):
+        '''
+        @span: number of cone degrees as multiple of 60
+        @length: side length of cone, in hexes
+        
+        Method: for each span, find 3 corners of cone, check if each unit's position's distance
+            to each corner is less than the side length
+        '''
+        
+        left_dist = doublewidth_distance(center, left_edge)
+        # broadcast b/c center is np.array
+        left_corner = center + math.ceil(length / left_dist) * (left_edge - center)
+        
+        # precompute all the pivot corners of this "cone"
+        # really, its [span] number of 60-deg cones stitched together
+        corners = [left_corner]
+        next_corner = left_corner
+        for _ in range(span):
+            next_corner = doublewidth_rotation(next_corner, center)
+            corners.append(next_corner)
+
+
+        hits = []
+        for unit in self.units:
+            if doublewidth_distance(unit.position, center) > length:
+                continue
+
+            # each unit needs to be within [length] of the center AND two consecutive corners
+            prev_in_range = False
+            for c in corners:
+                if doublewidth_distance(unit.position, c) <= length:
+                    if prev_in_range:
+                        hits.append(unit)
+                        break
+                    prev_in_range = True
+                else:
+                    prev_in_range = False
+
+        print(f'cone range: center {center} corners {corners}, hitting: {hits}')
         return hits
 
 
@@ -259,7 +281,7 @@ class Board:
         dist_multiplier = 1 if not getFarthest else -1
         return min(possible_units, 
                    key=lambda other: dist_multiplier * 
-                        self.distance(unit.position, other.position))
+                        doublewidth_distance(unit.position, other.position))
 
     def get_hex_center_2d(self, pos):
         ''' output euclidean coordinates '''
@@ -278,6 +300,8 @@ class Board:
                    (x - self.HEX_LENGTH * math.sqrt(3) / 2, y - self.HEX_LENGTH / 2)]
 
         return corners
+
+
 
 
 
@@ -360,7 +384,7 @@ class Board:
 
 
 
-    def start_game(self, timeout=25):
+    def start_game(self, timeout=30):
         loop = asyncio.get_event_loop()
         task = loop.create_task(self.battle())
 

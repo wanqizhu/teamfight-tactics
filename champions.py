@@ -4,6 +4,8 @@ import json
 import numpy as np
 from enum import Enum
 
+from hex_utils import doublewidth_distance
+
 # TODO: enum types for e.g. team, traits
 
 class ChampionStats:
@@ -83,7 +85,7 @@ class Unit:
         self._ap = 0
         self.target = None
         self._position = np.array(position)
-        self.star = 1
+        self.star = int(star)
         self._id = None
         self.board = None
         self.start_time = time.perf_counter()
@@ -241,12 +243,12 @@ class Unit:
             await self.sleep(0.1)
 
         # walk until in range
-        dist = self.board.distance(self.position, 
+        dist = doublewidth_distance(self.position, 
                                    self.target.position)
         while dist > self.range:
             self.board.search_path(self, self.target)
             await self.sleep(1)
-            dist = self.board.distance(self.position, 
+            dist = doublewidth_distance(self.position, 
                    self.target.position)
 
         self.log(f'atk -> {self.target}')
@@ -366,31 +368,6 @@ class Unit:
             await self.sleep(0.1)
 
 
-# class Aatrox(Unit):
-#     ''' set 2 '''
-#     SPELL_DMG = [180, 300, 600, 900]
-#     async def spell_effect(self):
-#         if self.target:
-#             dist = self.board.distance(self, self.target)
-#             aim_center = self.position  # default in case weird stuff happens
-
-#             # the hex in the direction of our target should have less distance
-#             for neighbor in self.board._neighbors:
-#                 pos = self.position + neighbor
-#                 if self.board.distance(pos, self.target) < dist:
-#                     aim_center = pos
-#                     break
-
-#             assert aim_center != self.position
-#         else:
-#             aim_center = self.position + (1, 1)
-
-#         await self.sleep(0.25)
-#         for target in self.board.circle_range(aim_center, radius=1):
-#             if target.team_id != self.team_id:
-#                 self.deal_damage(target, self.SPELL_DMG[self.star], 'magical')
-
-
 
 class Ahri(Unit):
     async def spell_effect(self):
@@ -425,4 +402,52 @@ class Poppy(Unit):
         
         await self.sleep(0.25)
         
+        self.shield(self.SPELL_SHIELD)
+
+
+class Jayce(Unit):
+    async def spell_effect(self):
+        if self.target:
+            dist = doublewidth_distance(self.position, self.target.position)
+            aim_center = self.position  # default in case weird stuff happens
+
+            # the hex in the direction of our target should have less distance
+            for neighbor in self.board._neighbors:
+                pos = self.position + neighbor
+                if doublewidth_distance(pos, self.target.position) < dist:
+                    aim_center = pos
+                    break
+
+            assert doublewidth_distance(aim_center, self.position) > 0
+        else:
+            aim_center = self.position + (1, 1)
+
+        await self.sleep(0.25)
+        for target in self.board.circle_range(aim_center, radius=1):
+            if target.team_id != self.team_id:
+                self.deal_damage(target, self.SPELL_DMG, 'magical')
+
+
+class Annie(Unit):
+    async def spell_effect(self):
+        if self.target:
+            dist = doublewidth_distance(self.position, self.target.position)
+            left_cone_edge = self.position  # default in case weird stuff happens
+
+            # the hex in the direction of our target should have less distance
+            for neighbor in self.board._neighbors:
+                pos = self.position + neighbor
+                if doublewidth_distance(pos, self.target.position) < dist:
+                    left_cone_edge = pos
+                    break
+
+            assert doublewidth_distance(left_cone_edge, self.position) > 0
+        else:
+            left_cone_edge = self.position + (1, 1)
+
+        await self.sleep(0.25)
+        for target in self.board.cone_range(self.position, left_cone_edge, span=1, length=3):
+            if target.team_id != self.team_id:
+                self.deal_damage(target, self.SPELL_DMG, 'magical')
+
         self.shield(self.SPELL_SHIELD)

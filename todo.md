@@ -4,12 +4,15 @@ https://kirankoduru.github.io/python/sublime-text-ninja.html
 
 
 - TODO: make other star gaurdians
-  - poppy
+  - zoe
+    - cc
+
+
 
 - show dmg numbers
   - maybe also source?
 - show ahri's projectile
-
+  - show spell effects on render
 
 
 vvv make this so logging & printing looks nice

@@ -39,20 +39,31 @@ def setup(logfile=None):
     p1 = Player()
     p2 = Player()
 
-    c0 = Unit.from_name('Ahri', position=(0, 0), 
+    p1c0 = Unit.from_name('Ahri', position=(0, 0), 
                        logfile=logfile)
-    c1 = Unit.from_name('Ahri', position=(2, 0), 
+    p1c1 = Unit.from_name('Ahri', position=(2, 0), 
+                       logfile=logfile)
+    p1c2 = Unit.from_name('Poppy', position=(3, 3), star=3, 
                        logfile=logfile)
 
-    p1.champions.add(c0)
-    p1.champions.add(c1)
+    p1.champions.add(p1c0)
+    p1.champions.add(p1c1)
+    p1.champions.add(p1c2)
 
-    c2 = Unit.from_name('Ahri', position=(1, 1), 
+    p2c0 = Unit.from_name('Annie', position=(1, 1), 
                        logfile=logfile)
-    c3 = Unit.from_name('Poppy', position=(9, 1), 
+    p2c1 = Unit.from_name('Jayce', position=(9, 1), star=2, 
                        logfile=logfile)
-    p2.champions.add(c2)
-    p2.champions.add(c3)
+    p2c2 = Unit.from_name('Jayce', position=(1, 3), 
+                       logfile=logfile)
+    p2c3 = Unit.from_name('Annie', position=(4, 4), 
+                       logfile=logfile)
+    p2c3 = Unit.from_name('Annie', position=(5, 3), 
+                       logfile=logfile)
+    p2.champions.add(p2c0)
+    p2.champions.add(p2c1)
+    p2.champions.add(p2c2)
+    p2.champions.add(p2c3)
 
     board = Board(p1, p2, speed=2)
 
