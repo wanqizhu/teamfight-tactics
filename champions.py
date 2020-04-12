@@ -192,7 +192,6 @@ class Unit:
     def total_shield(self):
         return sum([s[1] for s in self.shields])
     
-
     @property
     def is_ranged(self):
         return self.range > 1
@@ -211,6 +210,12 @@ class Unit:
 
     def __str__(self):
         return "[%s (%s)]" % (self.name, self._id)
+
+
+    @property
+    def speed(self):
+        return self.board.speed
+    
 
     async def sleep(self, time):
         if self.board:
@@ -265,12 +270,22 @@ class Unit:
 
 
     def shield(self, amount, duration=-1):
-        # TODO: remove shields after expiration
         if duration == -1:
             duration = 100
 
-        self.shields.append([time.perf_counter() + duration, amount])
+        _id = time.perf_counter()
+        self.shields.append([time.perf_counter() + duration, amount, _id])
         self.shields.sort(key=lambda x: x[0])
+        
+        # remove shields after expiration
+        def remove_shield():
+            for s in self.shields:
+                if s[2] == _id:
+                    self.shields.remove(s)
+                    return
+
+        loop = asyncio.get_event_loop()
+        loop.call_later(duration / self.speed, remove_shield)
 
 
     def receive_damage(self, dmg, source, dmg_type, is_autoattack=False):
