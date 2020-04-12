@@ -365,7 +365,7 @@ class Unit:
         
             if auto_task.done():
                 auto_task = asyncio.ensure_future(self.autoattack())
-            await self.sleep(0.1)
+            await self.sleep(0.03)
 
 
 

@@ -420,8 +420,12 @@ class Board:
 
 
     def resolve_game(self):
+        if not self.tasks:  # TODO: make sure there's no concurrency issues
+            return
+
         for task in self.tasks:
             task.cancel()
+        self.tasks = []
 
         won = [False, False]
         dmg = [0, 0]
