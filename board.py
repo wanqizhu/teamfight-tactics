@@ -12,7 +12,7 @@ RED = 128, 0, 0
 BLUE = 0, 0, 128
 DARKBLUE = 0, 0, 255
 pygame.init()
-font = pygame.font.SysFont("comicsans", 30)
+font = pygame.font.SysFont("comicsans", 28)
 
 
 
@@ -290,58 +290,70 @@ class Board:
                                   self.get_hex_corners_2d((c, r)))
 
 
-    def draw_unit(self, unit):
-        x, y = self.get_hex_center_2d(unit.position)
-        width = unit.img.get_width()
-        topleftx = x - width/2
-        toplefty = y - unit.img.get_height()/2
-
-        # align the Surface img to the hex center
-        self.screen.blit(unit.img, 
-                        (topleftx, toplefty))
-
-        # draw hp bar, with shield
-        pygame.draw.rect(self.screen, WHITE, 
-                         (topleftx, toplefty - 50, width, 20))
-        pygame.draw.rect(self.screen, RED, 
-                         (topleftx, toplefty - 50, 
-                          (unit.max_hp / (unit.max_hp + unit.total_shield)) * width, 20))
-        pygame.draw.rect(self.screen, GREEN, 
-                         (topleftx, toplefty - 50, 
-                          (unit.hp / (unit.max_hp + unit.total_shield)) * width, 20))
-        hptext = font.render("HP: %d/%d [+%d]" % (unit.hp, unit.max_hp, unit.total_shield), 1, BLACK)
-        self.screen.blit(hptext, (topleftx, toplefty - 50))
-
-        # draw mana bar
-        pygame.draw.rect(self.screen, DARKBLUE, 
-                         (topleftx, toplefty - 30, width, 20))
-        pygame.draw.rect(self.screen, BLUE, 
-                         (topleftx, toplefty - 30, 
-                          (unit.mana / unit.max_mana) * width, 20))
-        manatext = font.render("MP: %d/%d" % (unit.mana, unit.max_mana), 1, BLACK)
-        self.screen.blit(manatext, (topleftx, toplefty - 30))
-
-
     async def visualize(self):
         while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT: sys.exit()
+
+            self.draw_background()
+
+            # draw raw img first
+            for unit in self.units:
+                if not unit.img:
+                    continue
+
+                x, y = self.get_hex_center_2d(unit.position)
+                topleftx = x - unit.img.get_width()/2
+                toplefty = y - unit.img.get_height()/2
+
+                # align the Surface img to the hex center
+                self.screen.blit(unit.img, 
+                                (topleftx, toplefty))
+
+
+            # draw hp & mana bars on top
+            for unit in self.units:
+                if not unit.img:
+                    continue
+
+                x, y = self.get_hex_center_2d(unit.position)
+                width = unit.img.get_width()
+                topleftx = x - width/2
+                toplefty = y - unit.img.get_height()/2
+
+                # draw hp bar, with shield
+                pygame.draw.rect(self.screen, WHITE, 
+                                 (topleftx, toplefty - 50, width, 20))
+                pygame.draw.rect(self.screen, RED, 
+                                 (topleftx, toplefty - 50, 
+                                  (unit.max_hp / (unit.max_hp + unit.total_shield)) * width, 20))
+                pygame.draw.rect(self.screen, GREEN, 
+                                 (topleftx, toplefty - 50, 
+                                  (unit.hp / (unit.max_hp + unit.total_shield)) * width, 20))
+                hptext = font.render("HP: %d/%d+%d" % (unit.hp, unit.max_hp, unit.total_shield), 1, BLACK)
+                self.screen.blit(hptext, (topleftx, toplefty - 50))
+
+                # draw mana bar
+                pygame.draw.rect(self.screen, DARKBLUE, 
+                                 (topleftx, toplefty - 30, width, 20))
+                pygame.draw.rect(self.screen, BLUE, 
+                                 (topleftx, toplefty - 30, 
+                                  (unit.mana / unit.max_mana) * width, 20))
+                manatext = font.render("MP: %d/%d" % (unit.mana, unit.max_mana), 1, BLACK)
+                self.screen.blit(manatext, (topleftx, toplefty - 30))
+
+
+
             keepRunning = False
             for t in self.tasks:
                 if not t.done():
                     keepRunning = True
                     break
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT: sys.exit()
-
-            self.draw_background()
-
-            for unit in self.units:
-                if unit.img:
-                    self.draw_unit(unit)
-
             if not keepRunning:
                 text = font.render("Round over", 1, WHITE)
                 self.screen.blit(text, (300, 300))
+                # don't break for now to keep screen updated
 
             pygame.display.flip()
             await self.sleep(0.25)
