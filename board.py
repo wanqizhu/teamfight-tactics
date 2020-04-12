@@ -7,6 +7,8 @@ from champions import Unit
 from hex_utils import (doublewidth_distance, 
                       doublewidth_rotation)
 
+from projectile import Projectile
+
 BLACK = 0, 0, 0
 WHITE = 255, 255, 255
 GREEN = 0, 128, 0
@@ -34,10 +36,12 @@ class Board:
         self.speed = speed
         self._spaces = sum([[(x, y) for x in range(y%2, self.WIDTH+1)] for y in range(self.HEIGHT+1)], [])
 
-        _x, _y = self.get_hex_center_2d((self.WIDTH+1, self.HEIGHT))
+        _x, _y = self.get_hex_center_euc((self.WIDTH+1, self.HEIGHT))
         self.screen_size = (int(_x) + self.MARGIN, int(_y) + self.MARGIN)
         self.screen = pygame.display.set_mode(self.screen_size)
-
+        self.projectiles = set()
+        self.isGameActive = False
+        self.endingRound = False
 
         for unit in p1.champions:
             x, y = unit.position
@@ -75,7 +79,6 @@ class Board:
         start_pos = source_unit.position
         target_pos = target_unit.position
         atk_range = source_unit.range
-        print(source_unit.range)
 
         curr_dist = doublewidth_distance(start_pos, target_pos)
         if curr_dist <= atk_range:
@@ -259,7 +262,7 @@ class Board:
         self.teams[team_id].remove(unit)
 
         if len(self.teams[team_id]) == 0:
-            self.resolve_game()
+            self.isGameActive = False
 
 
     def closest_unit(self, unit, filter_func='enemy', getFarthest=False):
@@ -283,15 +286,15 @@ class Board:
                    key=lambda other: dist_multiplier * 
                         doublewidth_distance(unit.position, other.position))
 
-    def get_hex_center_2d(self, pos):
+    def get_hex_center_euc(self, pos):
         ''' output euclidean coordinates '''
         c, r = pos
         x = self.MARGIN + (c+1) * self.HEX_LENGTH * math.sqrt(3) / 2
         y = self.MARGIN + self.HEX_LENGTH * (1 + r * 3 / 2)
         return (x, y)
 
-    def get_hex_corners_2d(self, pos):
-        x, y = self.get_hex_center_2d(pos)
+    def get_hex_corners_euc(self, pos):
+        x, y = self.get_hex_center_euc(pos)
         corners = [(x, y - self.HEX_LENGTH),
                    (x + self.HEX_LENGTH * math.sqrt(3) / 2, y - self.HEX_LENGTH / 2),
                    (x + self.HEX_LENGTH * math.sqrt(3) / 2, y + self.HEX_LENGTH / 2),
@@ -311,10 +314,15 @@ class Board:
         for r in range(self.HEIGHT):
             for c in range(r % 2, self.WIDTH, 2):
                 pygame.draw.lines(self.screen, (255, 0, 0), True,
-                                  self.get_hex_corners_2d((c, r)))
+                                  self.get_hex_corners_euc((c, r)))
 
 
-    async def visualize(self):
+    async def battle(self):
+        self.isGameActive = True
+        self.tasks = [asyncio.ensure_future(unit.loop())
+                      for unit in self.units] #+ [
+                      #asyncio.ensure_future(self.print_board())]
+
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT: sys.exit()
@@ -326,7 +334,7 @@ class Board:
                 if not unit.img:
                     continue
 
-                x, y = self.get_hex_center_2d(unit.position)
+                x, y = self.get_hex_center_euc(unit.position)
                 topleftx = x - unit.img.get_width()/2
                 toplefty = y - unit.img.get_height()/2
 
@@ -340,7 +348,7 @@ class Board:
                 if not unit.img:
                     continue
 
-                x, y = self.get_hex_center_2d(unit.position)
+                x, y = self.get_hex_center_euc(unit.position)
                 width = unit.img.get_width()
                 topleftx = x - width/2
                 toplefty = y - unit.img.get_height()/2
@@ -367,48 +375,44 @@ class Board:
                 self.screen.blit(manatext, (topleftx, toplefty - 30))
 
 
+            toRemove = []
+            for p in self.projectiles:
+                p.update()
+                self.screen.blit(p.surf, p.rect)
+                if p.atDestination:
+                    toRemove.append(p)
 
-            keepRunning = False
-            for t in self.tasks:
-                if not t.done():
-                    keepRunning = True
-                    break
+            for p in toRemove:
+                self.projectiles.remove(p)
 
-            if not keepRunning:
-                text = font.render("Round over", 1, WHITE)
-                self.screen.blit(text, (300, 300))
-                # don't break for now to keep screen updated
+
+            if not self.isGameActive: 
+                if not self.endingRound: # only run once
+                    self.endingRound = True
+                    asyncio.create_task(self.resolve_game())
+                    
+
+                endGameText = font.render("Round over", 1, WHITE)
+                self.screen.blit(endGameText, (300, 300))
+                
 
             pygame.display.flip()
             await self.sleep(0.25)
 
 
 
-    def start_game(self, timeout=30):
-        loop = asyncio.get_event_loop()
-        task = loop.create_task(self.battle())
-
-        loop.call_later(timeout / self.speed, self.resolve_game)
-
+    async def start_game(self, timeout=30):
+        self.gameLoopTask = asyncio.create_task(self.battle())
         try:
-            loop.run_until_complete(task)
+            await asyncio.wait_for(self.gameLoopTask, timeout=timeout / self.speed)
+        except asyncio.TimeoutError:
+            print('timeout!')
+            self.endingRound = True
+            await self.resolve_game()
         except asyncio.CancelledError:
-            print('round over')
+            print('normal end')
             pass
-
-        # wait 5s w/o blocking just for display purposes
-        w = loop.create_task(self.sleep(5))
-        loop.run_until_complete(w)
-
-
-
-    async def battle(self):
-        self.tasks = [asyncio.ensure_future(unit.loop())
-                      for unit in self.units] + [
-                      asyncio.ensure_future(self.print_board())]
-
-        self.graphicsTask = asyncio.ensure_future(self.visualize())
-        await asyncio.gather(*self.tasks)
+            
 
 
     async def print_board(self):
@@ -419,13 +423,14 @@ class Board:
             await self.sleep(0.5)
 
 
-    def resolve_game(self):
-        if not self.tasks:  # TODO: make sure there's no concurrency issues
-            return
-
+    async def resolve_game(self):
         for task in self.tasks:
             task.cancel()
+
         self.tasks = []
+        await self.sleep(3)
+        self.gameLoopTask.cancel()
+
 
         won = [False, False]
         dmg = [0, 0]

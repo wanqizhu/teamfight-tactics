@@ -1,3 +1,5 @@
+import math
+
 # helpers for hex coordinate conversion
 def doublewidth_to_cube(pos):
     x = (pos[0] - pos[1]) // 2
@@ -51,3 +53,9 @@ def doublewidth_distance(pos1, pos2):
     dx = abs(x1-x2)
     dy = abs(y1-y2)
     return dy + max(0, (dx - dy)//2)
+
+
+def euc_dist(coord1, coord2):
+    a, b = coord1
+    c, d = coord2
+    return math.sqrt((a-c)**2 + (b-d)**2)

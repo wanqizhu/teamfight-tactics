@@ -29,9 +29,6 @@ propegate errors from async tasks somehow
 
 champions general
 - traits
-- death
-  - remove from board
-  - reset targeting
 - damage logic
   - dmg need to be responded to (eg thronmail)
   - this response needs a callback to process too
@@ -41,7 +38,6 @@ champions general
 
 
 Code
-- property setters
 - enums
 - logs
 

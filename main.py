@@ -43,7 +43,7 @@ def setup(logfile=None):
                        logfile=logfile)
     p1c1 = Unit.from_name('Ahri', position=(2, 0), 
                        logfile=logfile)
-    p1c2 = Unit.from_name('Poppy', position=(3, 3), star=3, 
+    p1c2 = Unit.from_name('Poppy', position=(3, 3),
                        logfile=logfile)
 
     p1.champions.add(p1c0)
@@ -52,18 +52,18 @@ def setup(logfile=None):
 
     p2c0 = Unit.from_name('Annie', position=(1, 1), 
                        logfile=logfile)
-    p2c1 = Unit.from_name('Jayce', position=(9, 1), star=2, 
-                       logfile=logfile)
+    #p2c1 = Unit.from_name('Jayce', position=(9, 1), star=2, 
+    #                   logfile=logfile)
     p2c2 = Unit.from_name('Jayce', position=(1, 3), 
                        logfile=logfile)
-    p2c3 = Unit.from_name('Annie', position=(4, 4), 
-                       logfile=logfile)
-    p2c3 = Unit.from_name('Annie', position=(5, 3), 
-                       logfile=logfile)
+    # p2c3 = Unit.from_name('Annie', position=(4, 4), 
+    #                    logfile=logfile)
+    # p2c4 = Unit.from_name('Annie', position=(5, 3), 
+    #                    logfile=logfile)
     p2.champions.add(p2c0)
-    p2.champions.add(p2c1)
+    #p2.champions.add(p2c1)
     p2.champions.add(p2c2)
-    p2.champions.add(p2c3)
+    # p2.champions.add(p2c3)
 
     board = Board(p1, p2, speed=2)
 
@@ -76,6 +76,6 @@ def setup(logfile=None):
 
 GAME_BOARD = setup(logfile)
 
-GAME_BOARD.start_game()
+asyncio.run(GAME_BOARD.start_game())
 
 logfile.close()

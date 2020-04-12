@@ -5,6 +5,7 @@ import numpy as np
 from enum import Enum
 
 from hex_utils import doublewidth_distance
+from projectile import Projectile
 
 # TODO: enum types for e.g. team, traits
 
@@ -262,6 +263,7 @@ class Unit:
         if target.is_targetable:
             target.receive_damage(dmg, self, dmg_type, is_autoattack)
 
+
     async def cast_spell(self):
         self.log(f"casting {self.ability['description']}...")
         await self.spell_effect()
@@ -288,6 +290,18 @@ class Unit:
 
         loop = asyncio.get_event_loop()
         loop.call_later(duration / self.speed, remove_shield)
+
+
+    def launch_projectile(self, target, speed, start=None):
+        if not start:
+            start = self.position
+
+        start_euc = self.board.get_hex_center_euc(start)
+        end_euc = self.board.get_hex_center_euc(target)
+
+        self.board.projectiles.add(
+            Projectile(self.board, start_euc, end_euc, speed, 
+                       img='imgs/%s_ability.png' % self.name))
 
 
     def receive_damage(self, dmg, source, dmg_type, is_autoattack=False):
@@ -379,6 +393,9 @@ class Ahri(Unit):
             end_pos = self.target.position
         else:
             end_pos = start_pos + (1, 1)
+
+
+        self.launch_projectile(end_pos, 60)
 
         targets = self.board.line_trace(start_pos, end_pos, length=6)
         for target in targets:
