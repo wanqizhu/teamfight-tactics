@@ -16,7 +16,7 @@ RED = 128, 0, 0
 BLUE = 0, 0, 128
 DARKBLUE = 0, 0, 255
 pygame.init()
-font = pygame.font.SysFont("comicsans", 28)
+font = pygame.font.SysFont("comicsans", 24)
 
 
 
@@ -41,7 +41,7 @@ class Board:
         self.screen = pygame.display.set_mode(self.screen_size)
         self.projectiles = set()
         self.isGameActive = False
-        self.endingRound = False
+        self.resolvingGameTask = None
 
         for unit in p1.champions:
             x, y = unit.position
@@ -243,6 +243,7 @@ class Board:
         unit.board = self
         try:
             unit.img = pygame.image.load("imgs/%s.png" % unit.name)
+            unit.img = pygame.transform.scale(unit.img, (128, 128))
         except:
             unit.img = None
 
@@ -387,9 +388,8 @@ class Board:
 
 
             if not self.isGameActive: 
-                if not self.endingRound: # only run once
-                    self.endingRound = True
-                    asyncio.create_task(self.resolve_game())
+                if self.resolvingGameTask is None: # only run once
+                    self.resolvingGameTask = asyncio.create_task(self.resolve_game())
                     
 
                 endGameText = font.render("Round over", 1, WHITE)
@@ -401,14 +401,17 @@ class Board:
 
 
 
-    async def start_game(self, timeout=30):
+    async def start_game(self, timeout=45):
         self.gameLoopTask = asyncio.create_task(self.battle())
         try:
             await asyncio.wait_for(self.gameLoopTask, timeout=timeout / self.speed)
         except asyncio.TimeoutError:
             print('timeout!')
-            self.endingRound = True
-            await self.resolve_game()
+            if self.resolvingGameTask is None:
+                self.resolvingGameTask = asyncio.create_task(self.resolve_game())
+
+            await self.resolvingGameTask
+
         except asyncio.CancelledError:
             print('normal end')
             pass
@@ -428,7 +431,7 @@ class Board:
             task.cancel()
 
         self.tasks = []
-        await self.sleep(3)
+        await self.sleep(5)
         self.gameLoopTask.cancel()
 
 
