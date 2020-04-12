@@ -91,6 +91,7 @@ class Unit:
         self.traits = set()
         self.status = []
         self.team_id = None
+        self.shields = []
         # CR-soon: write self to logfile
 
         for key, value in kwargs.items():
@@ -188,6 +189,11 @@ class Unit:
         return mana
 
     @property
+    def total_shield(self):
+        return sum([s[1] for s in self.shields])
+    
+
+    @property
     def is_ranged(self):
         return self.range > 1
     
@@ -258,9 +264,14 @@ class Unit:
         pass
 
 
-    def shield(self, amount, expire=-1):
-        # TODO
-        pass
+    def shield(self, amount, duration=-1):
+        # TODO: remove shields after expiration
+        if duration == -1:
+            duration = 100
+
+        self.shields.append([time.perf_counter() + duration, amount])
+        self.shields.sort(key=lambda x: x[0])
+
 
     def receive_damage(self, dmg, source, dmg_type, is_autoattack=False):
         mana_gained = min(self.MAX_MANA_FROM_DMG, int(dmg * self.MANA_PER_DMG))
@@ -276,9 +287,23 @@ class Unit:
 
     def on_damage(self, dmg, source, dmg_type, is_autoattack=False):
         dmg = int(dmg)
-        self._hp -= dmg
         self.log('%d dmg [%s] from [%s]' % (dmg, dmg_type, source))
+
+        for i, s in enumerate(self.shields):
+            amount = s[1]
+            if amount > dmg:
+                self.shields[i][1] -= dmg
+                self.shields = self.shields[i:]  # remove previously broken shields
+                return (True, dmg)
+
+            # cut through current shield and continue
+            dmg -= amount
+
+        self.shields = []
+        self._hp -= dmg
+        
         return (True, dmg)
+
 
     def log(self, msg):
         logstr = '(%f)[%s %s] %s' % (self.time_alive, 

@@ -300,13 +300,16 @@ class Board:
         self.screen.blit(unit.img, 
                         (topleftx, toplefty))
 
-        # draw hp bar
-        pygame.draw.rect(self.screen, RED, 
+        # draw hp bar, with shield
+        pygame.draw.rect(self.screen, WHITE, 
                          (topleftx, toplefty - 50, width, 20))
+        pygame.draw.rect(self.screen, RED, 
+                         (topleftx, toplefty - 50, 
+                          (unit.max_hp / (unit.max_hp + unit.total_shield)) * width, 20))
         pygame.draw.rect(self.screen, GREEN, 
                          (topleftx, toplefty - 50, 
-                          (unit.hp / unit.max_hp) * width, 20))
-        hptext = font.render("HP: %d/%d" % (unit.hp, unit.max_hp), 1, BLACK)
+                          (unit.hp / (unit.max_hp + unit.total_shield)) * width, 20))
+        hptext = font.render("HP: %d/%d [+%d]" % (unit.hp, unit.max_hp, unit.total_shield), 1, BLACK)
         self.screen.blit(hptext, (topleftx, toplefty - 50))
 
         # draw mana bar
