@@ -58,12 +58,13 @@ def setup(logfile=None):
                        logfile=logfile)
     # p2c3 = Unit.from_name('Annie', position=(4, 4), 
     #                    logfile=logfile)
-    # p2c4 = Unit.from_name('Annie', position=(5, 3), 
-    #                    logfile=logfile)
+    p2c4 = Unit.from_name('Jhin', position=(5, 3), 
+                       logfile=logfile)
     p2.champions.add(p2c0)
     #p2.champions.add(p2c1)
     p2.champions.add(p2c2)
     # p2.champions.add(p2c3)
+    p2.champions.add(p2c4)
 
     board = Board(p1, p2, speed=2)
 

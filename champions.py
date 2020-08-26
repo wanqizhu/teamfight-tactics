@@ -131,6 +131,10 @@ class Unit:
         return self.ability["stats"].get("Damage", [0, 0, 0])[self.star - 1]
     
     @property
+    def SPELL_ATTACK_DMG(self):
+        return self.ability["stats"].get("Attack Damage", [0, 0, 0])[self.star - 1]
+    
+    @property
     def SPELL_SHIELD(self):
         return self.ability["stats"].get("Shield", [0, 0, 0])[self.star - 1]
     
@@ -188,11 +192,7 @@ class Unit:
 
     @property
     def mana_per_atk(self):
-        mana = self.MANA_PER_ATK 
-        if self.star <= 1:
-           mana *= 0.8
-        if 'Elementalist' in self.traits or 'Sorcerer' in self.traits:
-            mana *= 2
+        mana = self.MANA_PER_ATK
         return mana
 
     @property
@@ -241,6 +241,12 @@ class Unit:
         self.target = self.board.closest_unit(self, filter_func='enemy')
         return self.target
 
+    def launch_autoattack(self, target):
+        res = self.deal_damage(self.target, self.ad, 'physical', is_autoattack=True)
+        self._mana += self.mana_per_atk
+        return res
+        
+
     async def autoattack(self):
         await self.sleep(0.5 / self.atspd)
         while not self.target:
@@ -257,8 +263,7 @@ class Unit:
                    self.target.position)
 
         self.log(f'atk -> {self.target}')
-        res = self.deal_damage(self.target, self.ad, 'physical', is_autoattack=True)
-        self._mana += self.mana_per_atk
+        res = self.launch_autoattack(self.target)
         await self.sleep(0.5 / self.atspd)
         return res
 
@@ -271,6 +276,8 @@ class Unit:
 
 
     async def cast_spell(self):
+        if self.max_mana == 0:
+            return
         self.log(f"casting {self.ability['description']}...")
         await self.spell_effect()
 
@@ -521,4 +528,24 @@ class Blitzcrank(Unit):
         self.launch_projectile(farthest_unit.position, speed=proj_speed, 
                                dmg=0,
                                ending_func=pull)
+
+
+class Jhin(Unit):
+    # TODO: convert atspd to atk
+    # todo: show bullet on mana bar
+    def custom_init(self):
+        self.bullet_count = 4
+        self.MANA_PER_ATK = 0
+        self.MANA_PER_DMG = 0
+
+    def launch_autoattack(self, target):
+        self.bullet_count -= 1
+        if self.bullet_count == 0:
+            # fourth shot
+            res = self.deal_damage(self.target, self.ad * (1 + self.SPELL_ATTACK_DMG / 100),
+                                  'physical', is_autoattack=True)
+            self.bullet_count = 4
+        else:
+            res = self.deal_damage(self.target, self.ad, 'physical', is_autoattack=True)
+        return res
 

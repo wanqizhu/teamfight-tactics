@@ -4,7 +4,7 @@ https://kirankoduru.github.io/python/sublime-text-ninja.html
 
 
 - add homing projectiles (poppy)
-
+- look into why projectiles sometimes are stuck on bottom left corner (prob b/c owner or target died?)
 
 - make custom position 2-tuple arrays instead of relying on np.array stuff
 

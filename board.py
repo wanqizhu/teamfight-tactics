@@ -375,7 +375,8 @@ class Board:
                                  (topleftx, toplefty - 30, width, 20))
                 pygame.draw.rect(self.screen, BLUE, 
                                  (topleftx, toplefty - 30, 
-                                  (unit.mana / unit.max_mana) * width, 20))
+                                 ((unit.mana / unit.max_mana)
+                                  if unit.max_mana > 0 else 0) * width, 20))
                 manatext = font.render("MP: %d/%d" % (unit.mana, unit.max_mana), 1, BLACK)
                 self.screen.blit(manatext, (topleftx, toplefty - 30))
 
