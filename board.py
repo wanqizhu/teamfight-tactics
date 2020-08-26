@@ -35,7 +35,7 @@ class Board:
         self.units = set()
         self._id = 0
         self.speed = speed
-        self._spaces = sum([[(x, y) for x in range(y%2, self.WIDTH+1)] for y in range(self.HEIGHT+1)], [])
+        self.spaces = sum([[(x, y) for x in range(y%2, self.WIDTH, 2)] for y in range(self.HEIGHT)], [])
 
         _x, _y = self.get_hex_center_euc((self.WIDTH+1, self.HEIGHT))
         self.screen_size = (int(_x) + self.MARGIN, int(_y) + self.MARGIN)
@@ -288,6 +288,12 @@ class Board:
                    key=lambda other: dist_multiplier * 
                         doublewidth_distance(unit.position, other.position))
 
+    def get_closest_empty_hex(self, position):
+        empty_spaces = set(self.spaces) - set(tuple(u.position) for u in self.units)
+        return min(empty_spaces,
+                   key=lambda other: doublewidth_distance(position, other))
+
+
     def get_hex_center_euc(self, pos):
         ''' output euclidean coordinates '''
         c, r = pos
@@ -308,15 +314,12 @@ class Board:
 
 
 
-
-
     def draw_background(self):
         self.screen.fill(BLACK)
 
-        for r in range(self.HEIGHT):
-            for c in range(r % 2, self.WIDTH, 2):
-                pygame.draw.lines(self.screen, (255, 0, 0), True,
-                                  self.get_hex_corners_euc((c, r)))
+        for (c, r) in self.spaces:
+            pygame.draw.lines(self.screen, (255, 0, 0), True,
+                              self.get_hex_corners_euc((c, r)))
 
 
     async def battle(self):

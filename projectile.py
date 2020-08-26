@@ -66,7 +66,6 @@ class Projectile(pygame.sprite.Sprite):
 
 
         if self.rect.collidepoint(self.ending_loc):
-            print(self, "at destination, removing...")
             self.atDestination = True
             if self.ending_func:
                 self.ending_func(self)

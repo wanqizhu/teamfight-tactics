@@ -39,7 +39,7 @@ def setup(logfile=None):
     p1 = Player()
     p2 = Player()
 
-    p1c0 = Unit.from_name('Ahri', position=(0, 0), 
+    p1c0 = Unit.from_name('Blitzcrank', position=(0, 0), 
                        logfile=logfile)
     p1c1 = Unit.from_name('Ahri', position=(2, 0), 
                        logfile=logfile)

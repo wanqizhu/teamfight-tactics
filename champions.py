@@ -105,6 +105,10 @@ class Unit:
         self._max_mana = self.ability['manaCost']
         self._hp = self.max_hp
         self.is_targetable = True
+        self.custom_init()
+
+    def custom_init(self):
+        pass
 
 
     @classmethod
@@ -260,6 +264,8 @@ class Unit:
 
     def deal_damage(self, target, dmg, dmg_type, is_autoattack=False):
         # TODO: more fine-grained dmg source
+        if dmg <= 0:
+            return
         if target.is_targetable:
             target.receive_damage(dmg, self, dmg_type, is_autoattack)
 
@@ -396,6 +402,10 @@ class Unit:
             await self.sleep(0.03)
 
 
+
+
+
+
 class Ahri(Unit):
     async def spell_effect(self):
         if self.target is None or not self.target.is_targetable:
@@ -486,3 +496,29 @@ class Annie(Unit):
                 self.deal_damage(target, self.SPELL_DMG, 'magical')
 
         self.shield(self.SPELL_SHIELD)
+
+
+
+class Blitzcrank(Unit):
+    def custom_init(self):
+        # robot trait
+        self.mana = self.max_mana
+
+    async def spell_effect(self):
+        # find farthest unit
+        farthest_unit = self.board.closest_unit(self, getFarthest=True)
+        start_location = self.position
+        proj_speed = 600
+
+        def pull(proj):
+            self.deal_damage(farthest_unit, self.SPELL_DMG, 'magical')
+            # displace
+            # TODO: ensure no async issues
+            empty = self.board.get_closest_empty_hex(start_location)
+            self.board.move_unit(farthest_unit, empty)
+            # TODO: stun target, aggro allies
+
+        self.launch_projectile(farthest_unit.position, speed=proj_speed, 
+                               dmg=0,
+                               ending_func=pull)
+
