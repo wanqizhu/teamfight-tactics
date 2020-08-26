@@ -2,6 +2,7 @@ import asyncio
 import json
 import math
 import sys, pygame, math
+from copy import copy, deepcopy
 
 from champions import Unit
 from hex_utils import (doublewidth_distance, 
@@ -59,6 +60,13 @@ class Board:
 
     async def sleep(self, time):
         await asyncio.sleep(time / self.speed)
+
+    ''' list attr getters. TODO: add locks to avoid sync issues '''
+    def get_projectiles(self):
+        return copy(self.projectiles)
+
+
+
 
     ''' grid helper funcs '''
     def is_on_board(self, pos):
@@ -134,9 +142,6 @@ class Board:
         line_vec_x = (x1-x0)/euc_dist
         line_vec_y = (y1-y0)/euc_dist
 
-        # print('line from', x0, y0, 'to', x1, y1)
-        # print('line dir', line_vec_x, line_vec_y)
-
         rect_width_vec = (2 * width * line_vec_y,
                       -2 * width * line_vec_x)
 
@@ -148,8 +153,6 @@ class Board:
 
         rect_base_pt = (x0 - width * line_vec_y,
                        y0 + width * line_vec_x)
-
-        # print('rect', rect_base_pt, rect_width_vec, rect_length_vec)
 
         hits = []
 
@@ -167,8 +170,6 @@ class Board:
                 and length_dot > -0.01 and length_dot < length*length+0.01):
                     hits.append(unit)
 
-            # print('pt', x_euc, y_euc, width_dot, length_dot)
-        
         print(hits)
         return hits
 
@@ -336,12 +337,12 @@ class Board:
                     continue
 
                 x, y = self.get_hex_center_euc(unit.position)
-                topleftx = x - unit.img.get_width()/2
-                toplefty = y - unit.img.get_height()/2
-
+                rect = unit.img.get_rect()
+                rect.center = x, y
+                unit.img_rect = rect
+                
                 # align the Surface img to the hex center
-                self.screen.blit(unit.img, 
-                                (topleftx, toplefty))
+                self.screen.blit(unit.img, rect)
 
 
             # draw hp & mana bars on top
@@ -376,15 +377,11 @@ class Board:
                 self.screen.blit(manatext, (topleftx, toplefty - 30))
 
 
-            toRemove = []
-            for p in self.projectiles:
+            for p in self.get_projectiles():
                 p.update()
                 self.screen.blit(p.surf, p.rect)
                 if p.atDestination:
-                    toRemove.append(p)
-
-            for p in toRemove:
-                self.projectiles.remove(p)
+                    self.projectiles.remove(p)
 
 
             if not self.isGameActive: 

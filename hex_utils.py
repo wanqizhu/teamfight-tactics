@@ -37,6 +37,25 @@ def doublewidth_rotation(point, center, degrees=1):
     return doublewidth_target
 
 
+def doublewidth_round(pos):
+    x, y = pos
+    rx = int(round(x))
+    ry = int(round(y))
+    if (rx + ry) % 2 == 1:
+        # correct to a valid hex center
+        # this isn't exactly correctly, but for simplicity
+        # we'll just round in x direction
+        x_off = x - rx
+        if x_off > 0:
+            rx += 1
+        else:
+            rx -= 1
+
+    return (rx, ry)
+
+
+
+
 def doublewidth_distance(pos1, pos2):
     ''' hexagonal grid using Doubled Width Coord
 

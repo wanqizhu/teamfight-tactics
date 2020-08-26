@@ -3,9 +3,10 @@ https://www.redblobgames.com/grids/hexagons/#distances
 https://kirankoduru.github.io/python/sublime-text-ninja.html
 
 
-- make projectiles catch board collisions
-- make projectiles have a callback on complete (e.g. poppy, ahri return)
-- add homing projectiles for return
+- add homing projectiles (poppy)
+
+
+- make custom position 2-tuple arrays instead of relying on np.array stuff
 
 - TODO: make other star gaurdians
   - zoe

@@ -4,14 +4,16 @@ from hex_utils import euc_dist
 
 
 class Projectile(pygame.sprite.Sprite):
-    def __init__(self, board, starting_loc, ending_loc,
-                 speed, size=(50, 50), img=None):
+    def __init__(self, owner, starting_loc, ending_loc,
+                 speed, size=(50, 50), img=None, collision_func=None,
+                 ending_func=None):
         '''
         @starting_loc, ending_loc: Euclidean coords for display
         '''
         super().__init__()
 
-        self.board = board
+        self.owner = owner
+        self.board = owner.board
         self.ending_loc = ending_loc
         self.speed = speed
 
@@ -30,7 +32,8 @@ class Projectile(pygame.sprite.Sprite):
         
         self.rect.move_ip(*starting_loc)
         self.atDestination = False
-
+        self.collision_func = collision_func
+        self.ending_func = ending_func
 
 
     def update(self):
@@ -43,16 +46,23 @@ class Projectile(pygame.sprite.Sprite):
 
         self.rect.move_ip(*move_vec)
 
+        # check for board collisions
+        if self.collision_func:
+            for unit in self.board.units:
+                # try to collide against image
+                if unit.img_rect is not None:
+                    if self.rect.colliderect(unit.img_rect):
+                        self.collision_func(unit)
+                else:
+                    p = self.board.get_hex_center_euc(unit.position)
+                    if self.rect.collidepoint(p):
+                        self.collision_func(unit)
+
+
         if self.rect.collidepoint(self.ending_loc):
             print(self, "at destination, removing...")
             self.atDestination = True
+            if self.ending_func:
+                self.ending_func(self)
             return
 
-        # TODO: check for board collisions
-
-
-
-
-class HomingProjectile(Projectile):
-    # TODO
-    pass

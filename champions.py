@@ -4,7 +4,7 @@ import json
 import numpy as np
 from enum import Enum
 
-from hex_utils import doublewidth_distance
+from hex_utils import doublewidth_distance, doublewidth_round
 from projectile import Projectile
 
 # TODO: enum types for e.g. team, traits
@@ -292,16 +292,30 @@ class Unit:
         loop.call_later(duration / self.speed, remove_shield)
 
 
-    def launch_projectile(self, target, speed, start=None):
-        if not start:
+    def launch_projectile(self, target, speed, start=None,
+                          dmg=0, dmg_type='magical', 
+                          special_collision_func=None,
+                          ending_func=None):
+        if start is None:
             start = self.position
 
         start_euc = self.board.get_hex_center_euc(start)
         end_euc = self.board.get_hex_center_euc(target)
 
+        def collision_func(unit):
+            print("projectile colliding on ",
+                  unit.name, 
+                  "from ", self.name)
+            if unit.team_id != self.team_id:
+                self.deal_damage(unit, dmg, dmg_type)
+            if special_collision_func:
+                special_collision_func(unit)
+
         self.board.projectiles.add(
-            Projectile(self.board, start_euc, end_euc, speed, 
-                       img='imgs/%s_ability.png' % self.name))
+            Projectile(self, start_euc, end_euc, speed, 
+                       img='imgs/%s_ability.png' % self.name,
+                       collision_func=collision_func,
+                       ending_func=ending_func))
 
 
     def receive_damage(self, dmg, source, dmg_type, is_autoattack=False):
@@ -389,25 +403,42 @@ class Ahri(Unit):
             self.acquire_target()
 
         start_pos = self.position
-        if self.target:
-            end_pos = self.target.position
+        if self.target and (self.target.position != start_pos).any():
+            proj_dir = self.target.position - start_pos
+            proj_dir = proj_dir / np.linalg.norm(proj_dir)
         else:
-            end_pos = start_pos + (1, 1)
+            proj_dir = np.array((0.5, 0.5))
+
+        proj_speed = 90
+        proj_length = 6
+
+        # draw line through proj_dir 
+        end_pos = doublewidth_round(start_pos + proj_dir * proj_length)
+
+        def returning_projectile(outgoing_proj):
+            returning_loc = outgoing_proj.owner.position
+            self.launch_projectile(returning_loc, speed=proj_speed,
+                                   start=end_pos,
+                                   dmg=self.SPELL_DMG,
+                                   dmg_type='true')
 
 
-        self.launch_projectile(end_pos, 60)
+        self.launch_projectile(end_pos, speed=proj_speed, 
+                               dmg=self.SPELL_DMG,
+                               dmg_type='magical',
+                               ending_func=returning_projectile)
 
-        targets = self.board.line_trace(start_pos, end_pos, length=6)
-        for target in targets:
-            if target.team_id != self.team_id:
-                self.deal_damage(target, self.SPELL_DMG, 'magical')
+        # targets = self.board.line_trace(start_pos, end_pos, length=6)
+        # for target in targets:
+        #     if target.team_id != self.team_id:
+        #         self.deal_damage(target, self.SPELL_DMG, 'magical')
         
-        await self.sleep(0.25)
+        # await self.sleep(0.25)
         
-        targets = self.board.line_trace(end_pos, start_pos, length=6)
-        for target in targets:
-            if target.team_id != self.team_id:
-                self.deal_damage(target, self.SPELL_DMG, 'true')
+        # targets = self.board.line_trace(end_pos, start_pos, length=6)
+        # for target in targets:
+        #     if target.team_id != self.team_id:
+        #         self.deal_damage(target, self.SPELL_DMG, 'true')
 
 
 class Poppy(Unit):
