@@ -396,7 +396,6 @@ class Unit:
             await self.sleep(0.03)
 
 
-
 class Ahri(Unit):
     async def spell_effect(self):
         if self.target is None or not self.target.is_targetable:
@@ -427,18 +426,6 @@ class Ahri(Unit):
                                dmg=self.SPELL_DMG,
                                dmg_type='magical',
                                ending_func=returning_projectile)
-
-        # targets = self.board.line_trace(start_pos, end_pos, length=6)
-        # for target in targets:
-        #     if target.team_id != self.team_id:
-        #         self.deal_damage(target, self.SPELL_DMG, 'magical')
-        
-        # await self.sleep(0.25)
-        
-        # targets = self.board.line_trace(end_pos, start_pos, length=6)
-        # for target in targets:
-        #     if target.team_id != self.team_id:
-        #         self.deal_damage(target, self.SPELL_DMG, 'true')
 
 
 class Poppy(Unit):

@@ -34,6 +34,7 @@ class Projectile(pygame.sprite.Sprite):
         self.atDestination = False
         self.collision_func = collision_func
         self.ending_func = ending_func
+        self.collided_targets = set()
 
 
     def update(self):
@@ -49,14 +50,19 @@ class Projectile(pygame.sprite.Sprite):
         # check for board collisions
         if self.collision_func:
             for unit in self.board.units:
+                if unit in self.collided_targets:
+                    continue
+
                 # try to collide against image
                 if unit.img_rect is not None:
                     if self.rect.colliderect(unit.img_rect):
                         self.collision_func(unit)
+                        self.collided_targets.add(unit)
                 else:
                     p = self.board.get_hex_center_euc(unit.position)
                     if self.rect.collidepoint(p):
                         self.collision_func(unit)
+                        self.collided_targets.add(unit)
 
 
         if self.rect.collidepoint(self.ending_loc):
