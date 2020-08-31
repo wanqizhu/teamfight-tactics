@@ -6,7 +6,6 @@ https://kirankoduru.github.io/python/sublime-text-ninja.html
 - add homing projectiles (poppy)
 - look into why projectiles sometimes are stuck on bottom left corner (prob b/c owner or target died?)
 
-- make custom position 2-tuple arrays instead of relying on np.array stuff
 
 - TODO: make other star gaurdians
   - zoe
@@ -16,8 +15,6 @@ https://kirankoduru.github.io/python/sublime-text-ninja.html
 
 - show dmg numbers
   - maybe also source?
-- show ahri's projectile
-  - show spell effects on render
 
 
 vvv make this so logging & printing looks nice
@@ -45,6 +42,3 @@ champions general
 Code
 - enums
 - logs
-
-
-The correct way to line target is to have a projectile class w/ predefined trajectory --> enables Braum

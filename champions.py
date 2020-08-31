@@ -1,10 +1,11 @@
 import time
 import asyncio
 import json
-import numpy as np
 from enum import Enum
 
-from hex_utils import doublewidth_distance, doublewidth_round
+from hex_utils import (doublewidth_distance, 
+                      doublewidth_round,
+                      Position)
 from projectile import Projectile
 
 # TODO: enum types for e.g. team, traits
@@ -85,7 +86,7 @@ class Unit:
         self.stats = stats
         self._ap = 0
         self.target = None
-        self._position = np.array(position)
+        self._position = Position(*position)
         self.star = int(star)
         self._id = None
         self.board = None
@@ -209,7 +210,7 @@ class Unit:
     
     @position.setter
     def position(self, position):
-        self._position = np.array(position)
+        self._position = Position(*position)
 
     def __repr__(self):
         return (f"[{self.name} @{self.position}] HP:{self.hp}/{self.max_hp},"
@@ -419,11 +420,11 @@ class Ahri(Unit):
             self.acquire_target()
 
         start_pos = self.position
-        if self.target and (self.target.position != start_pos).any():
+        if self.target and self.target.position != start_pos:
             proj_dir = self.target.position - start_pos
-            proj_dir = proj_dir / np.linalg.norm(proj_dir)
+            proj_dir = proj_dir / proj_dir.norm()
         else:
-            proj_dir = np.array((0.5, 0.5))
+            proj_dir = Position(0.5, 0.5)
 
         proj_speed = 90
         proj_length = 6

@@ -6,7 +6,8 @@ from copy import copy, deepcopy
 
 from champions import Unit
 from hex_utils import (doublewidth_distance, 
-                      doublewidth_rotation)
+                       doublewidth_rotation,
+                       Position)
 
 from projectile import Projectile
 
@@ -35,7 +36,7 @@ class Board:
         self.units = set()
         self._id = 0
         self.speed = speed
-        self.spaces = sum([[(x, y) for x in range(y%2, self.WIDTH, 2)] for y in range(self.HEIGHT)], [])
+        self.spaces = sum([[Position(x, y) for x in range(y%2, self.WIDTH, 2)] for y in range(self.HEIGHT)], [])
 
         _x, _y = self.get_hex_center_euc((self.WIDTH+1, self.HEIGHT))
         self.screen_size = (int(_x) + self.MARGIN, int(_y) + self.MARGIN)
@@ -47,7 +48,7 @@ class Board:
         for unit in p1.champions:
             x, y = unit.position
             if y >= 0:
-                self.add_unit(unit, 0, (x, y))
+                self.add_unit(unit, 0, Position(x, y))
 
 
         ## TODO: class actives
@@ -194,7 +195,6 @@ class Board:
         '''
         
         left_dist = doublewidth_distance(center, left_edge)
-        # broadcast b/c center is np.array
         left_corner = center + math.ceil(length / left_dist) * (left_edge - center)
         
         # precompute all the pivot corners of this "cone"
@@ -229,7 +229,7 @@ class Board:
     ''' unit placement logic '''
     def get_unit_at_pos(self, pos):
         for unit in self.units:
-            if all(unit.position == pos):
+            if unit.position == pos:
                 return unit
         return None
 
